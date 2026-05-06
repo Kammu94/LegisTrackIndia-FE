@@ -4,8 +4,8 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   tagTypes: ['Cases', 'Hearings'],
   baseQuery: fetchBaseQuery({ 
-    // baseUrl: 'https://legistrack-baemf0g6b0hvckfh.centralindia-01.azurewebsites.net/api', // Prod
-	baseUrl: 'https://localhost:7289/api',//local
+    baseUrl: 'https://legistrack-baemf0g6b0hvckfh.centralindia-01.azurewebsites.net/api', // Prod
+	//baseUrl: 'https://localhost:7289/api',//local
 	
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as { auth: { token: string | null } };

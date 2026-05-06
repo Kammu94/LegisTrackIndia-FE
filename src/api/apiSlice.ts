@@ -1,5 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+const baseUrl =
+  import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7289/api';
+
 export type AuthUser = {
   firstName?: string | null;
   lastName?: string | null;
@@ -39,10 +42,8 @@ export type UpdateUserProfileRequest = {
 export const apiSlice = createApi({
   reducerPath: 'api',
   tagTypes: ['Cases', 'Hearings', 'Profile'],
-  baseQuery: fetchBaseQuery({ 
-    //baseUrl: 'https://legistrack-baemf0g6b0hvckfh.centralindia-01.azurewebsites.net/api', // Prod
-	baseUrl: 'https://localhost:7289/api',//local
-	
+  baseQuery: fetchBaseQuery({
+    baseUrl,
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as { auth: { token: string | null } };
       const token = state.auth.token;

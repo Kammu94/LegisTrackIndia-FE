@@ -71,3 +71,30 @@ export default defineConfig([
   },
 ])
 ```
+
+## API Base URL
+
+The frontend now uses Vite environment variables for the API base URL.
+
+- Development: `.env.development`
+- Production: `.env.production`
+- Template: `.env.example`
+
+Variable used:
+
+```env
+VITE_API_BASE_URL=https://localhost:7289/api
+```
+
+How it works:
+
+- `npm run dev` automatically uses `.env.development`
+- `npm run build` automatically uses `.env.production`
+
+If you need a machine-specific local override, create `.env.local` with:
+
+```env
+VITE_API_BASE_URL=https://localhost:7289/api
+```
+
+That file is already ignored by git.

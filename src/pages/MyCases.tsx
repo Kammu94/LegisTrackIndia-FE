@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGetCasesQuery, useCreateCaseMutation, useUpdateCaseMutation, useToggleCaseStatusMutation } from '../api/caseApi';
 import type { CaseDto, CreateCaseRequest, UpdateCaseRequest } from '../api/caseApi';
-import { Scale, Pencil, CheckCircle, Archive, AlertCircle, MapPin, User, Calendar, LogOut, LayoutDashboard, Briefcase, Clock } from 'lucide-react';
+import { Scale, Pencil, CheckCircle, Archive, AlertCircle, MapPin, User, Calendar, Inbox, LogOut, LayoutDashboard, Briefcase, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
@@ -58,6 +58,10 @@ const MyCases = () => {
           <Link to="/hearings" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <Calendar className="h-5 w-5" />
             <span>Hearings</span>
+          </Link>
+          <Link to="/leads" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <Inbox className="h-5 w-5" />
+            <span>Leads</span>
           </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />

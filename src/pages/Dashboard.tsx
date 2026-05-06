@@ -2,12 +2,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
-import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, User } from 'lucide-react';
+import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, Inbox, User } from 'lucide-react';
 import MobileNav from '../components/MobileNav';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
+import { useGetMyLeadsQuery } from '../api/apiSlice';
 
 const Dashboard = () => {
   const { user } = useSelector((state: RootState) => state.auth);
+  const { data: leads } = useGetMyLeadsQuery();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -37,6 +39,10 @@ const Dashboard = () => {
           <Link to="/hearings" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <Calendar className="h-5 w-5" />
             <span>Hearings</span>
+          </Link>
+          <Link to="/leads" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <Inbox className="h-5 w-5" />
+            <span>Leads</span>
           </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />
@@ -74,7 +80,7 @@ const Dashboard = () => {
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8 w-full max-w-full">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-gray-500 text-sm font-medium">Total Active Cases</h3>
               <p className="text-3xl font-bold text-legal-corporate mt-2">0</p>
@@ -87,6 +93,10 @@ const Dashboard = () => {
               <h3 className="text-gray-500 text-sm font-medium">Pending Payments</h3>
               <p className="text-3xl font-bold text-red-600 mt-2"> 0</p>
             </div>
+            <Link to="/leads" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 block hover:border-legal-gold/40 transition-colors">
+              <h3 className="text-gray-500 text-sm font-medium">Incoming Leads</h3>
+              <p className="text-3xl font-bold text-legal-gold mt-2">{leads?.length ?? 0}</p>
+            </Link>
           </div>
 
           <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center py-12 sm:py-20">

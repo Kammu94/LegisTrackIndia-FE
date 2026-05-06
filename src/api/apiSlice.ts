@@ -3,12 +3,21 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 const baseUrl =
   import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7289/api';
 
+export type WhyClientConnectPoint = {
+  header: string;
+  description: string;
+};
+
 export type AuthUser = {
   firstName?: string | null;
   lastName?: string | null;
   gender?: string | null;
   barCouncilId?: string | null;
   phoneNumber?: string | null;
+  officeAddress?: string | null;
+  publicBio?: string | null;
+  practiceAreas?: string[];
+  whyClientConnectPoints?: WhyClientConnectPoint[];
   fullName: string;
   email: string;
   profileSlug: string;
@@ -37,11 +46,50 @@ export type UpdateUserProfileRequest = {
   gender?: string;
   barCouncilId?: string;
   phoneNumber?: string;
+  officeAddress?: string;
+  publicBio?: string;
+  practiceAreas: string[];
+  whyClientConnectPoints: WhyClientConnectPoint[];
+};
+
+export type PublicAdvocateProfile = {
+  profileSlug: string;
+  fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  gender?: string | null;
+  barCouncilId?: string | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  officeAddress?: string | null;
+  publicBio?: string | null;
+  isVerified: boolean;
+  practiceAreas: string[];
+  whyClientConnectPoints: WhyClientConnectPoint[];
+};
+
+export type CreatePublicLeadRequest = {
+  advocateId: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  matterType: string;
+  message: string;
+};
+
+export type Lead = {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  matterType: string;
+  message: string;
+  submittedAtUtc: string;
 };
 
 export const apiSlice = createApi({
   reducerPath: 'api',
-  tagTypes: ['Cases', 'Hearings', 'Profile'],
+  tagTypes: ['Cases', 'Hearings', 'Profile', 'PublicProfile', 'Leads'],
   baseQuery: fetchBaseQuery({
     baseUrl,
     prepareHeaders: (headers, { getState }) => {
@@ -80,6 +128,22 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Profile'],
     }),
+    getPublicProfile: builder.query<PublicAdvocateProfile, string>({
+      query: (advocateId) => `/public/profile/${advocateId}`,
+      providesTags: ['PublicProfile'],
+    }),
+    submitPublicLead: builder.mutation<{ message: string }, CreatePublicLeadRequest>({
+      query: ({ advocateId, ...body }) => ({
+        url: `/public/profile/${advocateId}/lead`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Leads'],
+    }),
+    getMyLeads: builder.query<Lead[], void>({
+      query: () => '/leads',
+      providesTags: ['Leads'],
+    }),
   }),
 });
 
@@ -88,4 +152,7 @@ export const {
   useRegisterMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
+  useGetPublicProfileQuery,
+  useSubmitPublicLeadMutation,
+  useGetMyLeadsQuery,
 } = apiSlice;

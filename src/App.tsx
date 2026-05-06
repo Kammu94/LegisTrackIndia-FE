@@ -6,7 +6,9 @@ import Dashboard from './pages/Dashboard';
 import MyCases from './pages/MyCases';
 import CaseDetails from './pages/CaseDetails';
 import Hearings from './pages/Hearings';
+import LeadsPage from './pages/LeadsPage';
 import ProfilePage from './pages/ProfilePage';
+import PublicProfile from './pages/PublicProfile';
 import ProtectedPath from './components/ProtectedPath';
 import Loader from './components/Loader';
 import { apiSlice } from './api/apiSlice';
@@ -32,6 +34,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/profile/:advocateId" element={<PublicProfile />} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedPath />}>
@@ -39,6 +42,7 @@ function App() {
             <Route path="/cases" element={<MyCases />} />
             <Route path="/cases/:id" element={<CaseDetails />} />
             <Route path="/hearings" element={<Hearings />} />
+            <Route path="/leads" element={<LeadsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
 

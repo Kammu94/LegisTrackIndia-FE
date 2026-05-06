@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGetHearingsQuery } from '../api/caseApi';
-import { Scale, Calendar, MapPin, Search, Filter, Clock, ArrowRight, LayoutDashboard, Briefcase, LogOut, User } from 'lucide-react';
+import { Scale, Calendar, MapPin, Search, Filter, Clock, ArrowRight, LayoutDashboard, Briefcase, Inbox, LogOut, User } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
@@ -54,6 +54,10 @@ const Hearings = () => {
           <Link to="/hearings" className="flex items-center space-x-3 bg-legal-corporate p-3 rounded-lg text-white">
             <Calendar className="h-5 w-5" />
             <span>Hearings</span>
+          </Link>
+          <Link to="/leads" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <Inbox className="h-5 w-5" />
+            <span>Leads</span>
           </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />

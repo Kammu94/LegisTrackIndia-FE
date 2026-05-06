@@ -1,11 +1,47 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+export type AuthUser = {
+  firstName?: string | null;
+  lastName?: string | null;
+  gender?: string | null;
+  barCouncilId?: string | null;
+  phoneNumber?: string | null;
+  fullName: string;
+  email: string;
+  profileSlug: string;
+};
+
+export type AuthResponse = AuthUser & {
+  token: string;
+};
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type RegisterRequest = {
+  email: string;
+  password: string;
+  fullName: string;
+  barCouncilId: string;
+  officeAddress: string;
+};
+
+export type UpdateUserProfileRequest = {
+  firstName: string;
+  lastName: string;
+  gender?: string;
+  barCouncilId?: string;
+  phoneNumber?: string;
+};
+
 export const apiSlice = createApi({
   reducerPath: 'api',
-  tagTypes: ['Cases', 'Hearings'],
+  tagTypes: ['Cases', 'Hearings', 'Profile'],
   baseQuery: fetchBaseQuery({ 
-    baseUrl: 'https://legistrack-baemf0g6b0hvckfh.centralindia-01.azurewebsites.net/api', // Prod
-	//baseUrl: 'https://localhost:7289/api',//local
+    //baseUrl: 'https://legistrack-baemf0g6b0hvckfh.centralindia-01.azurewebsites.net/api', // Prod
+	baseUrl: 'https://localhost:7289/api',//local
 	
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as { auth: { token: string | null } };
@@ -17,21 +53,38 @@ export const apiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
-    login: builder.mutation({
+    login: builder.mutation<AuthResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
         body: credentials,
       }),
     }),
-    register: builder.mutation({
+    register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (userData) => ({
         url: '/auth/register',
         method: 'POST',
         body: userData,
       }),
     }),
+    getProfile: builder.query<AuthUser, void>({
+      query: () => '/user/profile',
+      providesTags: ['Profile'],
+    }),
+    updateProfile: builder.mutation<AuthUser, UpdateUserProfileRequest>({
+      query: (data) => ({
+        url: '/user/profile',
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Profile'],
+    }),
   }),
 });
 
-export const { useLoginMutation, useRegisterMutation } = apiSlice;
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+} = apiSlice;

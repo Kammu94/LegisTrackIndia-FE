@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import MyCases from './pages/MyCases';
 import CaseDetails from './pages/CaseDetails';
 import Hearings from './pages/Hearings';
+import ProfilePage from './pages/ProfilePage';
 import ProtectedPath from './components/ProtectedPath';
 import Loader from './components/Loader';
 import { apiSlice } from './api/apiSlice';
@@ -38,6 +39,7 @@ function App() {
             <Route path="/cases" element={<MyCases />} />
             <Route path="/cases/:id" element={<CaseDetails />} />
             <Route path="/hearings" element={<Hearings />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
           {/* Redirects */}

@@ -2,8 +2,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
-import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar } from 'lucide-react';
+import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, User } from 'lucide-react';
 import MobileNav from '../components/MobileNav';
+import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 
 const Dashboard = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -37,6 +38,10 @@ const Dashboard = () => {
             <Calendar className="h-5 w-5" />
             <span>Hearings</span>
           </Link>
+          <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <User className="h-5 w-5" />
+            <span>Profile</span>
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-800">
@@ -59,11 +64,11 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-3 min-w-0 max-w-full">
             <div className="text-right min-w-0">
-              <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
+              <p className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</p>
               <p className="text-xs text-gray-500">Professional Account</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-legal-gold flex items-center justify-center text-legal-dark font-bold shrink-0">
-              {user?.fullName?.charAt(0)}
+              {getUserInitial(user)}
             </div>
           </div>
         </header>

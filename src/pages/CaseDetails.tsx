@@ -8,6 +8,7 @@ import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import dayjs from 'dayjs';
 import MobileNav from '../components/MobileNav';
+import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 
 const CaseDetails = () => {
   const { id } = useParams();
@@ -127,6 +128,10 @@ const CaseDetails = () => {
             <Calendar className="h-5 w-5" />
             <span>Hearings</span>
           </Link>
+          <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <User className="h-5 w-5" />
+            <span>Profile</span>
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-800">
@@ -151,11 +156,11 @@ const CaseDetails = () => {
           </div>
           <div className="flex items-center space-x-3 min-w-0">
             <div className="text-right hidden sm:block min-w-0">
-              <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
+              <p className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</p>
               <p className="text-xs text-gray-500">Professional Account</p>
             </div>
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-legal-gold flex items-center justify-center text-legal-dark font-bold shrink-0">
-              {user?.fullName?.charAt(0)}
+              {getUserInitial(user)}
             </div>
           </div>
         </header>

@@ -84,7 +84,10 @@ export const caseApi = apiSlice.injectEndpoints({
       query: ({ id, data }) => ({
         url: `/cases/${id}`,
         method: 'PUT',
-        body: data,
+        body: {
+          id,
+          ...data,
+        },
       }),
       invalidatesTags: ['Cases'],
     }),

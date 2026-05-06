@@ -6,6 +6,62 @@
   --color-legal-corporate: #2c3e50;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+table,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
 body {
   @apply bg-gray-50 text-gray-900;
+}
+
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.loader-logo {
+  width: clamp(80px, 18vw, 100px);
+  height: clamp(80px, 18vw, 100px);
+  object-fit: contain;
+  animation: rotate-logo 2s linear infinite;
+}
+
+@keyframes rotate-logo {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

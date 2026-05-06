@@ -37,7 +37,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-full overflow-x-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
           <div className="bg-legal-dark p-3 rounded-xl shadow-lg">
@@ -48,7 +48,7 @@ const RegisterPage = () => {
         <p className="mt-2 text-sm text-gray-600">Secure Digital Environment for Litigation Lawyers</p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl w-full">
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100">
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

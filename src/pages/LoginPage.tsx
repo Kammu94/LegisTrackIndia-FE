@@ -34,18 +34,18 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-full overflow-x-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
           <div className="bg-legal-dark p-3 rounded-xl shadow-lg">
             <Scale className="h-10 w-10 text-legal-gold" />
           </div>
         </div>
-        <h2 className="text-3xl font-extrabold text-legal-corporate">LegisTrack India</h2>
+        <h2 className="text-3xl font-extrabold text-legal-corporate">LegisTrack</h2>
         <p className="mt-2 text-sm text-gray-600">Digital Case Diary & Ledger for Professionals</p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md w-full">
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-gray-100">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>

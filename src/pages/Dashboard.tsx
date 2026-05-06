@@ -3,6 +3,7 @@ import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar } from 'lucide-react';
+import MobileNav from '../components/MobileNav';
 
 const Dashboard = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -15,7 +16,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex max-w-full overflow-x-hidden">
       {/* Sidebar */}
       <div className="w-64 bg-legal-dark text-white hidden md:flex flex-col">
         <div className="p-6 flex items-center space-x-3">
@@ -50,21 +51,24 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-8 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-legal-corporate">Advocate Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white shadow-sm min-h-16 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 border-b border-gray-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <MobileNav onLogout={handleLogout} />
+            <h1 className="text-lg sm:text-xl font-semibold text-legal-corporate min-w-0">Advocate Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-3 min-w-0 max-w-full">
+            <div className="text-right min-w-0">
               <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
               <p className="text-xs text-gray-500">Professional Account</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-legal-gold flex items-center justify-center text-legal-dark font-bold">
+            <div className="h-10 w-10 rounded-full bg-legal-gold flex items-center justify-center text-legal-dark font-bold shrink-0">
               {user?.fullName?.charAt(0)}
             </div>
           </div>
         </header>
 
-        <main className="p-8">
+        <main className="p-4 sm:p-6 lg:p-8 w-full max-w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-gray-500 text-sm font-medium">Total Active Cases</h3>
@@ -80,10 +84,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center py-20">
+          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center py-12 sm:py-20">
             <div className="max-w-md mx-auto">
               <Briefcase className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-legal-corporate">Welcome to your digital diary</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-legal-corporate">Welcome to your digital diary</h2>
               <p className="text-gray-500 mt-2">Start by adding your first case to track hearings and payments automatically.</p>
               <button 
                 onClick={() => navigate('/cases')}

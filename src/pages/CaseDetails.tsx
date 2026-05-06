@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import dayjs from 'dayjs';
+import MobileNav from '../components/MobileNav';
 
 const CaseDetails = () => {
   const { id } = useParams();
@@ -58,7 +59,7 @@ const CaseDetails = () => {
   };
 
   if (shouldSkip) return <div className="p-8 text-center text-red-600">Invalid case id.</div>;
-  if (isLoading) return <div className="p-8 text-center">Loading Case Details...</div>;
+  if (isLoading) return null;
   if (error || !caseData) {
     const status = (error as { status?: number } | null | undefined)?.status;
     if (status === 401) {
@@ -142,6 +143,7 @@ const CaseDetails = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-gray-200">
           <div className="flex items-center space-x-3 min-w-0">
+            <MobileNav onLogout={handleLogout} />
             <button onClick={() => navigate('/cases')} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -163,12 +165,12 @@ const CaseDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="md:col-span-2 bg-gradient-to-br from-legal-dark to-legal-corporate p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
               <div className="relative z-10">
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                  <div className="min-w-0">
                     <span className="text-legal-gold text-xs font-bold uppercase tracking-widest">Case Profile</span>
                     <h2 className="text-2xl sm:text-3xl font-bold mt-1 break-words">{caseData.caseNumber}</h2>
                     <p className="text-gray-300 mt-1 break-words">{caseData.clientName}</p>
-                    <div className="flex space-x-3 mt-4">
+                    <div className="flex flex-wrap gap-3 mt-4">
                       <button 
                         onClick={() => setIsEditing(true)}
                         className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all"
@@ -187,7 +189,7 @@ const CaseDetails = () => {
                   </div>
                   <button 
                     onClick={handleToggleStatus}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shrink-0 self-start ${
                       caseData.status === 0 
                         ? 'border-green-400/30 bg-green-400/10 text-green-400 hover:bg-green-400/20' 
                         : 'border-gray-400/30 bg-gray-400/10 text-gray-400 hover:bg-gray-400/20'
@@ -197,7 +199,7 @@ const CaseDetails = () => {
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-8 mt-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mt-10">
                   <div className="flex items-center space-x-3">
                     <div className="bg-white/10 p-2 rounded-lg">
                       <User className="h-5 w-5 text-legal-gold" />
@@ -245,14 +247,14 @@ const CaseDetails = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Hearing Timeline */}
             <div className="lg:col-span-2">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div className="flex items-center space-x-2">
                   <History className="h-5 w-5 text-legal-corporate" />
                   <h3 className="text-lg font-bold text-legal-corporate">Hearing Timeline</h3>
                 </div>
                 <button 
                   onClick={() => setShowAddHearing(true)}
-                  className="bg-legal-corporate text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center space-x-2 hover:bg-legal-dark transition-all shadow-md"
+                  className="bg-legal-corporate text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 hover:bg-legal-dark transition-all shadow-md w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Next Hearing</span>
@@ -266,12 +268,12 @@ const CaseDetails = () => {
                       new Date(h.hearingDate) < new Date() ? 'bg-gray-400' : 'bg-legal-gold'
                     }`} />
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group-hover:border-legal-gold/30 transition-all">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                        <div className="min-w-0">
                           <p className="text-sm font-bold text-legal-corporate">
                             {dayjs(h.hearingDate).format('dddd, DD MMMM YYYY')}
                           </p>
-                          <div className="flex items-center space-x-4 mt-1">
+                          <div className="flex flex-wrap items-center gap-4 mt-1">
                             <div className="flex items-center text-xs font-bold text-legal-gold">
                               <Clock className="h-3 w-3 mr-1" /> {dayjs(h.hearingDate).format('hh:mm A')}
                             </div>
@@ -293,11 +295,11 @@ const CaseDetails = () => {
               </div>
 
               {hearingsTotalCount > pageSize && (
-                <div className="flex items-center justify-between mt-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage <= 1}
-                    className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 bg-white text-legal-corporate hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-200 bg-white text-legal-corporate hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto"
                   >
                     Previous
                   </button>
@@ -307,7 +309,7 @@ const CaseDetails = () => {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage >= totalPages}
-                    className="px-4 py-2 rounded-xl text-sm font-bold bg-legal-corporate text-white hover:bg-legal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-legal-corporate text-white hover:bg-legal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto"
                   >
                     Next
                   </button>
@@ -336,21 +338,21 @@ const CaseDetails = () => {
           </div>
 
           <div className="mt-10 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center space-x-2">
                 <CreditCard className="h-5 w-5 text-legal-corporate" />
                 <h3 className="text-lg font-bold text-legal-corporate">Payment Info</h3>
               </div>
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="bg-legal-gold text-legal-dark px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-500 transition-all shadow-md"
+                className="bg-legal-gold text-legal-dark px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-500 transition-all shadow-md w-full sm:w-auto"
               >
                 Update Payment
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-legal-dark rounded-2xl p-6 text-white flex items-center justify-between">
+              <div className="bg-legal-dark rounded-2xl p-6 text-white flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-white/60">Total Fees Collected</p>
                   <p className="text-2xl font-black text-legal-gold mt-2">{formatINR(Number(caseData.totalFeesCollected || 0))}</p>
@@ -359,7 +361,7 @@ const CaseDetails = () => {
                   <CheckCircle className="h-6 w-6 text-legal-gold" />
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between">
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Net Balance</p>
                   <p className="text-2xl font-black text-legal-corporate mt-2">{formatINR(Number(caseData.totalBalance || 0))}</p>
@@ -497,7 +499,16 @@ const CaseDetails = () => {
           onClose={() => setIsEditing(false)}
           onSave={async (data) => {
             try {
-              await updateCase({ id: caseData.id, data }).unwrap();
+              await updateCase({
+                id: caseData.id,
+                data: {
+                  ...data,
+                  caseNumber: data.caseNumber?.trim() || caseData.caseNumber,
+                  judgeName: data.judgeName?.trim() || '',
+                  courtAddress: data.courtAddress?.trim() || '',
+                  caseDate: caseData.caseDate,
+                },
+              }).unwrap();
               setIsEditing(false);
             } catch {
               alert('Failed to update case');
@@ -542,7 +553,7 @@ const CaseEditModal = ({ caseData, onClose, onSave }: CaseEditModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100">
         <h2 className="text-2xl font-bold text-legal-corporate mb-6">Edit Case Profile</h2>
         <div className="space-y-4">
           <div>
@@ -571,11 +582,11 @@ const CaseEditModal = ({ caseData, onClose, onSave }: CaseEditModalProps) => {
             />
           </div>
         </div>
-        <div className="flex justify-end space-x-3 mt-10">
-          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold">Cancel</button>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
+          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">Cancel</button>
           <button 
             onClick={() => onSave(formData)} 
-            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all"
+            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
           >
             Update Profile
           </button>
@@ -592,7 +603,7 @@ const HearingModal = ({ onClose, onSave }: HearingModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-100 animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100 animate-in fade-in zoom-in duration-200">
         <h2 className="text-2xl font-bold text-legal-corporate mb-2">Schedule Next Hearing</h2>
         <p className="text-sm text-gray-500 mb-8">Maintain a chronological history of this case.</p>
         
@@ -624,11 +635,11 @@ const HearingModal = ({ onClose, onSave }: HearingModalProps) => {
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-10">
-          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold">Cancel</button>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
+          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">Cancel</button>
           <button 
             onClick={() => onSave(formData)} 
-            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all"
+            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
           >
             Log Hearing
           </button>
@@ -651,7 +662,7 @@ const PaymentModal = ({ onClose, onSave }: PaymentModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-gray-100 animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100 animate-in fade-in zoom-in duration-200">
         <h2 className="text-2xl font-bold text-legal-corporate mb-2">Update Payment</h2>
         <p className="text-sm text-gray-500 mb-8">Manual entry for record keeping only.</p>
 
@@ -718,8 +729,8 @@ const PaymentModal = ({ onClose, onSave }: PaymentModalProps) => {
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-10">
-          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold">Cancel</button>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
+          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">Cancel</button>
           <button
             onClick={() =>
               onSave({
@@ -730,7 +741,7 @@ const PaymentModal = ({ onClose, onSave }: PaymentModalProps) => {
                 transactionDate: formData.transactionDate ? new Date(formData.transactionDate).toISOString() : undefined,
               })
             }
-            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all"
+            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
           >
             Save Payment
           </button>

@@ -106,6 +106,14 @@ export const caseApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { caseId }) => ['Cases', 'Hearings', { type: 'Cases', id: caseId }],
     }),
+    updateHearing: builder.mutation<void, { id: number; hearingDate: string }>({
+      query: ({ id, hearingDate }) => ({
+        url: `/hearings/${id}`,
+        method: 'PUT',
+        body: { id, hearingDate },
+      }),
+      invalidatesTags: ['Cases', 'Hearings'],
+    }),
     addPaymentRecord: builder.mutation<string, { caseId: number; amount: number; type: number; mode: number; note?: string; transactionDate?: string }>({
       query: (data) => ({
         url: '/paymentrecords',
@@ -138,6 +146,7 @@ export const {
   useUpdateCaseMutation, 
   useToggleCaseStatusMutation,
   useAddHearingMutation,
+  useUpdateHearingMutation,
   useAddPaymentRecordMutation,
   useGetHearingsQuery,
   useDeleteCaseMutation

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useGetCaseByIdQuery, useAddHearingMutation, useAddPaymentRecordMutation, useToggleCaseStatusMutation, useUpdateCaseMutation, useDeleteCaseMutation } from '../api/caseApi';
-import type { CaseDto, HearingDto, PaymentRecordDto, UpdateCaseRequest } from '../api/caseApi';
+import { useGetCaseByIdQuery, useAddHearingMutation, useAddPaymentRecordMutation, useToggleCaseStatusMutation, useUpdateHearingMutation, useDeleteCaseMutation } from '../api/caseApi';
+import type { HearingDto, PaymentRecordDto } from '../api/caseApi';
 import { Scale, Pencil, Calendar, MapPin, User, ArrowLeft, Plus, History, CheckCircle, Archive, Info, Inbox, LogOut, LayoutDashboard, Briefcase, CreditCard, Clock } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
@@ -26,14 +26,14 @@ const CaseDetails = () => {
   );
   const [addHearing] = useAddHearingMutation();
   const [addPaymentRecord] = useAddPaymentRecordMutation();
-  const [updateCase] = useUpdateCaseMutation();
+  const [updateHearing] = useUpdateHearingMutation();
   const [deleteCase] = useDeleteCaseMutation();
   const [toggleStatus] = useToggleCaseStatusMutation();
   
   const [showAddHearing, setShowAddHearing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [hearingToEdit, setHearingToEdit] = useState<HearingDto | null>(null);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -181,13 +181,6 @@ const CaseDetails = () => {
                     <p className="text-gray-300 mt-1 break-words">{caseData.clientName}</p>
                     <div className="flex flex-wrap gap-3 mt-4">
                       <button 
-                        onClick={() => setIsEditing(true)}
-                        className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all"
-                        title="Edit Case"
-                      >
-                        <Pencil className="h-4 w-4 text-white" />
-                      </button>
-                      <button 
                         onClick={() => setShowDeleteConfirm(true)}
                         className="bg-red-500/20 hover:bg-red-500/40 p-2 rounded-lg transition-all"
                         title="Delete Case"
@@ -295,6 +288,18 @@ const CaseDetails = () => {
                           <span className="bg-legal-gold/10 text-legal-gold text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-tighter">Latest</span>
                         )}
                       </div>
+                      {new Date(h.hearingDate) > new Date() && (
+                        <div className="mb-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setHearingToEdit(h)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-legal-gold/30 bg-legal-gold/10 px-3 py-2 text-xs font-bold text-legal-corporate transition-colors hover:bg-legal-gold/20"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Update Future Hearing
+                          </button>
+                        </div>
+                      )}
                       <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 italic border-l-4 border-gray-200 break-words">
                         "{h.notes || 'No specific notes recorded for this hearing.'}"
                       </div>
@@ -501,26 +506,23 @@ const CaseDetails = () => {
         </div>
       )}
 
-      {/* Edit Case Modal */}
-      {isEditing && (
-        <CaseEditModal 
-          caseData={caseData}
-          onClose={() => setIsEditing(false)}
-          onSave={async (data) => {
+      {/* Edit Hearing Modal */}
+      {hearingToEdit && (
+        <HearingEditModal
+          hearing={hearingToEdit}
+          onClose={() => setHearingToEdit(null)}
+          onSave={async (hearingDate) => {
             try {
-              await updateCase({
-                id: caseData.id,
-                data: {
-                  ...data,
-                  caseNumber: data.caseNumber?.trim() || caseData.caseNumber,
-                  judgeName: data.judgeName?.trim() || '',
-                  courtAddress: data.courtAddress?.trim() || '',
-                  caseDate: caseData.caseDate,
-                },
+              await updateHearing({
+                id: hearingToEdit.id,
+                hearingDate,
               }).unwrap();
-              setIsEditing(false);
-            } catch {
-              alert('Failed to update case');
+              setHearingToEdit(null);
+            } catch (error) {
+              const message =
+                (error as { data?: { message?: string } } | undefined)?.data?.message ||
+                'Failed to update hearing';
+              alert(message);
             }
           }}
         />
@@ -546,64 +548,6 @@ const CaseDetails = () => {
 
 type HearingFormData = { hearingDate: string; location: string; notes: string };
 type PaymentFormData = { amount: number; type: number; mode: number; note?: string; transactionDate?: string };
-
-type CaseEditModalProps = {
-  caseData: CaseDto;
-  onClose: () => void;
-  onSave: (data: UpdateCaseRequest) => void;
-};
-
-const CaseEditModal = ({ caseData, onClose, onSave }: CaseEditModalProps) => {
-  const [formData, setFormData] = useState<UpdateCaseRequest>({
-    caseNumber: caseData.caseNumber,
-    judgeName: caseData.judgeName || '',
-    courtAddress: caseData.courtAddress || '',
-  });
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100">
-        <h2 className="text-2xl font-bold text-legal-corporate mb-6">Edit Case Profile</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Case Number</label>
-            <input 
-              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
-              value={formData.caseNumber}
-              onChange={(e) => setFormData({...formData, caseNumber: e.target.value})}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Presiding Judge</label>
-            <input 
-              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
-              value={formData.judgeName || ''}
-              onChange={(e) => setFormData({...formData, judgeName: e.target.value})}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Court Address</label>
-            <textarea 
-              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
-              rows={3}
-              value={formData.courtAddress || ''}
-              onChange={(e) => setFormData({...formData, courtAddress: e.target.value})}
-            />
-          </div>
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
-          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">Cancel</button>
-          <button 
-            onClick={() => onSave(formData)} 
-            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
-          >
-            Update Profile
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 type HearingModalProps = { onClose: () => void; onSave: (data: HearingFormData) => void };
 
@@ -651,6 +595,44 @@ const HearingModal = ({ onClose, onSave }: HearingModalProps) => {
             className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
           >
             Log Hearing
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+type HearingEditModalProps = {
+  hearing: HearingDto;
+  onClose: () => void;
+  onSave: (hearingDate: string) => void;
+};
+
+const HearingEditModal = ({ hearing, onClose, onSave }: HearingEditModalProps) => {
+  const [hearingDate, setHearingDate] = useState(dayjs(hearing.hearingDate).format('YYYY-MM-DDTHH:mm'));
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border border-gray-100">
+        <h2 className="text-2xl font-bold text-legal-corporate mb-2">Update Future Hearing</h2>
+        <p className="text-sm text-gray-500 mb-8">Only future hearing dates can be rescheduled from Case Overview.</p>
+        <div>
+          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Date & Time of Hearing</label>
+          <input
+            type="datetime-local"
+            className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
+            value={hearingDate}
+            min={dayjs().format('YYYY-MM-DDTHH:mm')}
+            onChange={(e) => setHearingDate(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
+          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">Cancel</button>
+          <button
+            onClick={() => onSave(new Date(hearingDate).toISOString())}
+            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
+          >
+            Update Hearing
           </button>
         </div>
       </div>

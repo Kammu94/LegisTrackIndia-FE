@@ -84,7 +84,39 @@ export type Lead = {
   phoneNumber: string;
   matterType: string;
   message: string;
+  status: LeadStatus;
+  outcomeNote?: string | null;
   submittedAtUtc: string;
+  updatedAt: string;
+};
+
+export type LeadStatusHistory = {
+  id: string;
+  fromStatus: LeadStatus;
+  toStatus: LeadStatus;
+  note: string;
+  createdAtUtc: string;
+};
+
+export type LeadDetail = Lead & {
+  statusHistory: LeadStatusHistory[];
+};
+
+export const LeadStatus = {
+  New: 0,
+  Contacted: 1,
+  Scheduled: 2,
+  Converted: 3,
+  Lost: 4,
+} as const;
+
+export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus];
+
+export type UpdateLeadStatusRequest = {
+  id: string;
+  status: LeadStatus;
+  note: string;
+  outcomeNote?: string;
 };
 
 export const apiSlice = createApi({
@@ -144,6 +176,77 @@ export const apiSlice = createApi({
       query: () => '/leads',
       providesTags: ['Leads'],
     }),
+    getLeadById: builder.query<LeadDetail, string>({
+      query: (id) => `/leads/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Leads', id }],
+    }),
+    updateLeadStatus: builder.mutation<Lead, UpdateLeadStatusRequest>({
+      query: ({ id, status, note, outcomeNote }) => ({
+        url: `/leads/${id}/status`,
+        method: 'PATCH',
+        body: { status, note, outcomeNote },
+      }),
+      async onQueryStarted({ id, status, note, outcomeNote }, { dispatch, queryFulfilled }) {
+        const optimisticUpdatedAt = new Date().toISOString();
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getMyLeads', undefined, (draft) => {
+            const target = draft.find((lead) => lead.id === id);
+            if (!target) return;
+
+            target.status = status;
+            target.outcomeNote =
+              status === LeadStatus.Converted || status === LeadStatus.Lost
+                ? outcomeNote?.trim() || null
+                : null;
+            target.updatedAt = optimisticUpdatedAt;
+            draft.sort((left, right) => {
+              if (left.status !== right.status) {
+                return left.status - right.status;
+              }
+
+              return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+            });
+          })
+        );
+
+        const detailPatchResult = dispatch(
+          apiSlice.util.updateQueryData('getLeadById', id, (draft) => {
+            const previousStatus = draft.status;
+            draft.status = status;
+            draft.outcomeNote =
+              status === LeadStatus.Converted || status === LeadStatus.Lost
+                ? outcomeNote?.trim() || null
+                : null;
+            draft.updatedAt = optimisticUpdatedAt;
+            draft.statusHistory.unshift({
+              id: `optimistic-${Date.now()}`,
+              fromStatus: previousStatus,
+              toStatus: status,
+              note: note.trim(),
+              createdAtUtc: optimisticUpdatedAt,
+            });
+          })
+        );
+
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(
+            apiSlice.util.updateQueryData('getMyLeads', undefined, (draft) => {
+              const index = draft.findIndex((lead) => lead.id === id);
+              if (index === -1) return;
+              draft[index] = data;
+            })
+          );
+          dispatch(
+            apiSlice.util.invalidateTags([{ type: 'Leads', id }])
+          );
+        } catch {
+          patchResult.undo();
+          detailPatchResult.undo();
+        }
+      },
+      invalidatesTags: (_result, _error, { id }) => ['Leads', { type: 'Leads', id }],
+    }),
   }),
 });
 
@@ -155,4 +258,6 @@ export const {
   useGetPublicProfileQuery,
   useSubmitPublicLeadMutation,
   useGetMyLeadsQuery,
+  useGetLeadByIdQuery,
+  useUpdateLeadStatusMutation,
 } = apiSlice;

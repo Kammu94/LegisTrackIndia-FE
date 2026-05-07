@@ -91,6 +91,8 @@ const MobileNav = ({ onLogout }: MobileNavProps) => {
                 const isActive =
                   to === '/cases'
                     ? location.pathname === '/cases' || location.pathname.startsWith('/cases/')
+                    : to === '/leads'
+                      ? location.pathname === '/leads' || location.pathname.startsWith('/leads/')
                     : to === '/profile'
                       ? location.pathname === '/profile'
                     : location.pathname === to;

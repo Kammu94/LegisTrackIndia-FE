@@ -250,8 +250,8 @@ const MyCases = () => {
           onSave={async (data) => {
             try {
               const payload: UpdateCaseRequest = {
-                ...data,
-                caseNumber: data.caseNumber.trim(),
+                clientName: data.clientName.trim(),
+                courtName: data.courtName.trim(),
                 caseDate: data.caseDate,
                 judgeName: data.judgeName?.trim() || '',
                 courtAddress: data.courtAddress?.trim() || '',
@@ -331,11 +331,16 @@ const CaseModal = ({ caseData, onClose, onSave, isNew }: CaseModalProps) => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Case Number</label>
             <input 
-              className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-legal-gold focus:border-legal-gold outline-none"
+              className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-legal-gold focus:border-legal-gold outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
               value={formData.caseNumber}
               onChange={(e) => setFormData({...formData, caseNumber: e.target.value})}
               placeholder="e.g. OS 123/2024"
+              disabled={!isNew}
+              readOnly={!isNew}
             />
+            {!isNew && (
+              <p className="mt-1 text-xs text-gray-500">Case number cannot be edited after creation.</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Client Name</label>

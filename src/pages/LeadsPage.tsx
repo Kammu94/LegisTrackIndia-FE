@@ -1,23 +1,22 @@
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Briefcase,
-  Calendar,
-  Inbox,
-  LayoutDashboard,
-  LogOut,
-  Mail,
-  MessageSquareText,
-  Phone,
-  Scale,
-  User,
-} from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, Inbox, LayoutDashboard, LogOut, Scale, User } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useDispatch, useSelector } from 'react-redux';
-import { useGetMyLeadsQuery } from '../api/apiSlice';
+import { LeadStatus, useGetMyLeadsQuery, type Lead } from '../api/apiSlice';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 import MobileNav from '../components/MobileNav';
+import { getLeadStatusMeta } from '../components/StatusProgressBar';
+
+const sortLeads = (items: Lead[]) =>
+  [...items].sort((left, right) => {
+    if (left.status !== right.status) {
+      return left.status - right.status;
+    }
+
+    return dayjs(right.updatedAt || right.submittedAtUtc).valueOf() - dayjs(left.updatedAt || left.submittedAtUtc).valueOf();
+  });
 
 const LeadsPage = () => {
   const navigate = useNavigate();
@@ -30,10 +29,10 @@ const LeadsPage = () => {
     navigate('/login');
   };
 
-  const totalLeads = leads?.length ?? 0;
-  const todayLeads =
-    leads?.filter((lead) => dayjs(lead.submittedAtUtc).isSame(dayjs(), 'day')).length ?? 0;
-  const latestLeadAt = leads?.[0]?.submittedAtUtc;
+  const sortedLeads = sortLeads(leads ?? []);
+  const totalLeads = sortedLeads.length;
+  const newLeadsCount = sortedLeads.filter((lead) => lead.status === LeadStatus.New).length;
+  const latestLeadAt = sortedLeads[0]?.submittedAtUtc;
 
   if (isLoading) return null;
 
@@ -103,8 +102,8 @@ const LeadsPage = () => {
               <p className="text-3xl font-bold text-legal-corporate mt-2">{totalLeads}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-gray-500 text-sm font-medium">Received Today</h3>
-              <p className="text-3xl font-bold text-legal-gold mt-2">{todayLeads}</p>
+              <h3 className="text-gray-500 text-sm font-medium">New Leads</h3>
+              <p className="text-3xl font-bold text-blue-600 mt-2">{newLeadsCount}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-gray-500 text-sm font-medium">Latest Submission</h3>
@@ -135,35 +134,39 @@ const LeadsPage = () => {
           {!error && totalLeads > 0 && (
             <>
               <div className="mt-8 space-y-4 md:hidden">
-                {leads?.map((lead) => (
-                  <div key={lead.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-base font-bold text-legal-corporate break-words">{lead.fullName}</p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
-                        </p>
+                {sortedLeads.map((lead) => {
+                  const statusMeta = getLeadStatusMeta(lead.status);
+
+                  return (
+                    <Link
+                      key={lead.id}
+                      to={`/leads/${lead.id}`}
+                      className="block rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-legal-gold/40"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-base font-bold text-legal-corporate break-words">{lead.fullName}</p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
+                          </p>
+                        </div>
+                        <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusMeta.colorClass}`}>
+                          {statusMeta.label}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-legal-gold/10 px-3 py-1 text-[11px] font-semibold text-legal-corporate">
-                        {lead.matterType}
-                      </span>
-                    </div>
-                    <div className="mt-4 space-y-3 text-sm text-gray-700">
-                      <div className="flex items-start gap-2">
-                        <Mail className="h-4 w-4 shrink-0 text-legal-gold mt-0.5" />
-                        <span className="break-words">{lead.email}</span>
+                      <p className="mt-3 text-sm text-gray-700 break-words">{lead.message}</p>
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <span className="rounded-full bg-legal-gold/10 px-3 py-1 text-[11px] font-semibold text-legal-corporate">
+                          {lead.matterType}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-legal-corporate">
+                          View Lead
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <Phone className="h-4 w-4 shrink-0 text-legal-gold mt-0.5" />
-                        <span className="break-words">{lead.phoneNumber}</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MessageSquareText className="h-4 w-4 shrink-0 text-legal-gold mt-0.5" />
-                        <span className="break-words">{lead.message}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
 
               <div className="hidden md:block mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
@@ -171,29 +174,44 @@ const LeadsPage = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prospective Client</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matter Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Summary</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {leads?.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-gray-50 transition-colors align-top">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-semibold text-legal-corporate">{lead.fullName}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 break-words">{lead.email}</div>
-                          <div className="text-xs text-gray-500 mt-1">{lead.phoneNumber}</div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{lead.matterType}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700 max-w-md break-words">{lead.message}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                          {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
-                        </td>
-                      </tr>
-                    ))}
+                    {sortedLeads.map((lead) => {
+                      const statusMeta = getLeadStatusMeta(lead.status);
+
+                      return (
+                        <tr key={lead.id} className="hover:bg-gray-50 transition-colors align-top">
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-semibold text-legal-corporate">{lead.fullName}</div>
+                            <div className="mt-1 text-sm text-gray-500">{lead.email}</div>
+                            <div className="mt-2 text-sm text-gray-700 max-w-md break-words">{lead.message}</div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{lead.matterType}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.colorClass}`}>
+                              {statusMeta.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                            {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Link
+                              to={`/leads/${lead.id}`}
+                              className="inline-flex items-center gap-2 rounded-xl border border-legal-gold/30 px-4 py-2 text-sm font-semibold text-legal-corporate hover:bg-amber-50"
+                            >
+                              View Lead
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

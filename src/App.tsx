@@ -7,6 +7,7 @@ import MyCases from './pages/MyCases';
 import CaseDetails from './pages/CaseDetails';
 import Hearings from './pages/Hearings';
 import LeadsPage from './pages/LeadsPage';
+import LeadDetailPage from './pages/LeadDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicProfile from './pages/PublicProfile';
 import ProtectedPath from './components/ProtectedPath';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/cases/:id" element={<CaseDetails />} />
             <Route path="/hearings" element={<Hearings />} />
             <Route path="/leads" element={<LeadsPage />} />
+            <Route path="/leads/:id" element={<LeadDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
 

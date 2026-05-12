@@ -9,12 +9,14 @@ import { logout } from '../features/auth/authSlice';
 import dayjs from 'dayjs';
 import MobileNav from '../components/MobileNav';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
+import { useNotify } from '../notifications/NotificationProvider';
 
 const CaseDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const notify = useNotify();
   
   const caseId = id ? Number(id) : NaN;
   const shouldSkip = !id || Number.isNaN(caseId);
@@ -44,9 +46,14 @@ const CaseDetails = () => {
     if (!caseData) return;
     try {
       await deleteCase(caseData.id).unwrap();
+      notify({
+        severity: 'success',
+        title: 'Case Deleted',
+        message: 'Case has been deleted.',
+      });
       navigate('/cases');
-    } catch {
-      alert('Failed to delete case');
+    } catch (err: unknown) {
+      void err;
     }
   };
 
@@ -54,8 +61,13 @@ const CaseDetails = () => {
     if (!caseData) return;
     try {
       await toggleStatus(caseData.id).unwrap();
-    } catch {
-      alert('Failed to toggle status');
+      notify({
+        severity: 'success',
+        title: 'Case Updated',
+        message: 'Case status has been updated.',
+      });
+    } catch (err: unknown) {
+      void err;
     }
   };
 
@@ -472,8 +484,13 @@ const CaseDetails = () => {
             try {
               await addHearing({ caseId: caseData.id, ...data }).unwrap();
               setShowAddHearing(false);
-            } catch {
-              alert('Failed to log next hearing');
+              notify({
+                severity: 'success',
+                title: 'Hearing Added',
+                message: 'Next hearing has been logged.',
+              });
+            } catch (err: unknown) {
+              void err;
             }
           }}
         />
@@ -518,11 +535,8 @@ const CaseDetails = () => {
                 hearingDate,
               }).unwrap();
               setHearingToEdit(null);
-            } catch (error) {
-              const message =
-                (error as { data?: { message?: string } } | undefined)?.data?.message ||
-                'Failed to update hearing';
-              alert(message);
+            } catch (err: unknown) {
+              void err;
             }
           }}
         />
@@ -536,8 +550,13 @@ const CaseDetails = () => {
             try {
               await addPaymentRecord({ caseId: caseData.id, ...data }).unwrap();
               setShowPaymentModal(false);
-            } catch {
-              alert('Failed to update payment');
+              notify({
+                severity: 'success',
+                title: 'Payment Updated',
+                message: 'Payment record has been saved.',
+              });
+            } catch (err: unknown) {
+              void err;
             }
           }}
         />

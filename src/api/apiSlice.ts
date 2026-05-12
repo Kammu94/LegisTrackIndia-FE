@@ -1,4 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import { logout } from '../features/auth/authSlice';
+import { notify } from '../notifications/notifyService';
 
 const baseUrl =
   import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7289/api';
@@ -119,20 +122,92 @@ export type UpdateLeadStatusRequest = {
   outcomeNote?: string;
 };
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as { auth: { token: string | null } };
+    const token = state.auth.token;
+    if (token) {
+      headers.set('authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+const baseQueryWithAuthRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  const token = (api.getState() as { auth: { token: string | null } }).auth.token;
+
+  const statusNumber = typeof result.error?.status === 'number' ? result.error.status : null;
+  const statusText = typeof result.error?.status === 'string' ? result.error.status : null;
+
+  if (statusText) {
+    const errorText =
+      (result.error as { error?: string } | undefined)?.error ||
+      'Network error. Please try again.';
+    notify({
+      severity: 'error',
+      title: 'Network Error',
+      message: errorText,
+      persist: true,
+    });
+  }
+
+  if (statusNumber && statusNumber >= 400 && statusNumber < 600) {
+    const meta =
+      statusNumber === 400
+        ? { title: 'Invalid Request', severity: 'warning' as const }
+        : statusNumber === 401
+          ? { title: 'Session Expired', severity: 'security' as const }
+          : statusNumber === 403
+            ? { title: 'Access Denied', severity: 'security' as const }
+            : statusNumber === 404
+              ? { title: 'Not Found', severity: 'warning' as const }
+              : statusNumber >= 500
+                ? { title: 'Server Error', severity: 'error' as const }
+                : { title: 'Request Failed', severity: 'error' as const };
+
+    const data = result.error?.data as
+      | { message?: string; title?: string }
+      | string
+      | null
+      | undefined;
+
+    const message =
+      typeof data === 'string'
+        ? data
+        : typeof data?.message === 'string' && data.message.trim().length > 0
+          ? data.message
+          : typeof data?.title === 'string' && data.title.trim().length > 0
+            ? data.title
+            : 'Something went wrong. Please try again.';
+
+    notify({
+      severity: meta.severity,
+      title: meta.title,
+      message,
+      persist: statusNumber >= 500 || statusNumber === 401,
+    });
+  }
+
+  if (statusNumber === 401 && token) {
+    api.dispatch(logout());
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
+  }
+
+  return result;
+};
+
 export const apiSlice = createApi({
   reducerPath: 'api',
   tagTypes: ['Cases', 'Hearings', 'Profile', 'PublicProfile', 'Leads'],
-  baseQuery: fetchBaseQuery({
-    baseUrl,
-    prepareHeaders: (headers, { getState }) => {
-      const state = getState() as { auth: { token: string | null } };
-      const token = state.auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithAuthRedirect,
   endpoints: (builder) => ({
     login: builder.mutation<AuthResponse, LoginRequest>({
       query: (credentials) => ({

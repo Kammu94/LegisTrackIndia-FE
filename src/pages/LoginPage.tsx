@@ -6,6 +6,7 @@ import { useLoginMutation } from '../api/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../features/auth/authSlice';
 import { Scale, ShieldCheck, Mail, Lock } from 'lucide-react';
+import { useNotify } from '../notifications/NotificationProvider';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -21,15 +22,20 @@ const LoginPage = () => {
   const [login, { isLoading }] = useLoginMutation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const notify = useNotify();
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const result = await login(data).unwrap();
       dispatch(setCredentials({ user: result, token: result.token }));
+      notify({
+        severity: 'success',
+        title: 'Signed In',
+        message: 'Welcome back to LegisTrack.',
+      });
       navigate('/dashboard');
     } catch (err: unknown) {
-      const message = (err as { data?: { message?: string } } | null | undefined)?.data?.message;
-      alert(message || 'Login failed');
+      void err;
     }
   };
 

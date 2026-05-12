@@ -11,6 +11,7 @@ import type { RootState } from '../store/store';
 import { logout, updateUser } from '../features/auth/authSlice';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 import MobileNav from '../components/MobileNav';
+import { useNotify } from '../notifications/NotificationProvider';
 
 const whyClientConnectPointSchema = z.object({
   header: z.string().trim().min(1, 'Header is required'),
@@ -56,6 +57,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const notify = useNotify();
   const { data: profile, isLoading, isError } = useGetProfileQuery();
   const [updateProfileRequest, { isLoading: isSaving }] = useUpdateProfileMutation();
   const [successMessage, setSuccessMessage] = useState('');
@@ -163,9 +165,13 @@ const ProfilePage = () => {
       }).unwrap();
       dispatch(updateUser(updatedProfile));
       setSuccessMessage('Profile updated successfully.');
+      notify({
+        severity: 'success',
+        title: 'Profile Saved',
+        message: 'Your profile has been updated.',
+      });
     } catch (err: unknown) {
-      const message = (err as { data?: { message?: string } } | null | undefined)?.data?.message;
-      alert(message || 'Failed to update profile');
+      void err;
     }
   };
 

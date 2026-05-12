@@ -6,6 +6,7 @@ import { useRegisterMutation } from '../api/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../features/auth/authSlice';
 import { Scale, Mail, Lock, User, Briefcase, MapPin } from 'lucide-react';
+import { useNotify } from '../notifications/NotificationProvider';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -24,15 +25,20 @@ const RegisterPage = () => {
   const [registerUser, { isLoading }] = useRegisterMutation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const notify = useNotify();
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
       const result = await registerUser(data).unwrap();
       dispatch(setCredentials({ user: result, token: result.token }));
+      notify({
+        severity: 'success',
+        title: 'Account Created',
+        message: 'Your professional account is ready.',
+      });
       navigate('/dashboard');
     } catch (err: unknown) {
-      const message = (err as { data?: { message?: string } } | null | undefined)?.data?.message;
-      alert(message || 'Registration failed');
+      void err;
     }
   };
 

@@ -74,10 +74,7 @@ const LeadDetailPage = () => {
       }).unwrap();
       closeModal();
     } catch (updateError) {
-      const message =
-        (updateError as { data?: { message?: string } } | undefined)?.data?.message ||
-        'Failed to update lead status';
-      alert(message);
+      void updateError;
     }
   };
 

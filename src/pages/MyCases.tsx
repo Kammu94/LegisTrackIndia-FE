@@ -9,6 +9,7 @@ import { logout } from '../features/auth/authSlice';
 import dayjs from 'dayjs';
 import MobileNav from '../components/MobileNav';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
+import { useNotify } from '../notifications/NotificationProvider';
 
 const MyCases = () => {
   const { data: cases, isLoading } = useGetCasesQuery();
@@ -21,6 +22,7 @@ const MyCases = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const notify = useNotify();
 
   const handleLogout = () => {
     dispatch(logout());
@@ -30,8 +32,13 @@ const MyCases = () => {
   const handleToggleStatus = async (id: number) => {
     try {
       await toggleStatus(id).unwrap();
-    } catch {
-      alert('Failed to update status');
+      notify({
+        severity: 'success',
+        title: 'Case Updated',
+        message: 'Case status has been updated.',
+      });
+    } catch (err: unknown) {
+      void err;
     }
   };
 
@@ -259,8 +266,13 @@ const MyCases = () => {
               };
               await updateCase({ id: editingCase.id, data: payload }).unwrap();
               setEditingCase(null);
-            } catch {
-              alert('Failed to save changes');
+              notify({
+                severity: 'success',
+                title: 'Case Saved',
+                message: 'Case details have been updated.',
+              });
+            } catch (err: unknown) {
+              void err;
             }
           }}
         />
@@ -285,8 +297,13 @@ const MyCases = () => {
               };
               await createCase(payload).unwrap();
               setIsAddingCase(false);
-            } catch {
-              alert('Failed to create case');
+              notify({
+                severity: 'success',
+                title: 'Case Created',
+                message: 'New case has been created.',
+              });
+            } catch (err: unknown) {
+              void err;
             }
           }}
         />

@@ -73,7 +73,7 @@ const Hearings = () => {
   const yearStart = useMemo(() => dayjs(`${selectedYear}-01-01`).startOf('year').toISOString(), [selectedYear]);
   const yearEnd = useMemo(() => dayjs(`${selectedYear}-12-31`).endOf('day').toISOString(), [selectedYear]);
 
-  const { data: hearings, isLoading, error } = useGetHearingsQuery({
+  const { data: hearings, error } = useGetHearingsQuery({
     startDate: yearStart,
     endDate: yearEnd,
     caseSearch: filters.caseSearch || undefined,

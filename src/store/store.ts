@@ -1,6 +1,15 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
 import { apiSlice } from '../api/apiSlice';
-import authReducer from '../features/auth/authSlice';
+import authReducer, { logout } from '../features/auth/authSlice';
+
+const listenerMiddleware = createListenerMiddleware();
+
+listenerMiddleware.startListening({
+  actionCreator: logout,
+  effect: async (_action, api) => {
+    api.dispatch(apiSlice.util.resetApiState());
+  },
+});
 
 export const store = configureStore({
   reducer: {
@@ -8,7 +17,9 @@ export const store = configureStore({
     auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+    getDefaultMiddleware()
+      .prepend(listenerMiddleware.middleware)
+      .concat(apiSlice.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

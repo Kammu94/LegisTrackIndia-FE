@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Briefcase, Calendar, Inbox, LayoutDashboard, LogOut, Menu, Scale, User, X } from 'lucide-react';
+import { Briefcase, Calendar, CreditCard, Inbox, LayoutDashboard, LogOut, Menu, Scale, User, X } from 'lucide-react';
 
 type MobileNavProps = {
   onLogout: () => void;
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/cases', label: 'My Cases', icon: Briefcase },
   { to: '/hearings', label: 'Hearings', icon: Calendar },
   { to: '/leads', label: 'Leads', icon: Inbox },
+  { to: '/subscription', label: 'Subscription', icon: CreditCard },
   { to: '/profile', label: 'Profile', icon: User },
 ];
 
@@ -93,6 +94,8 @@ const MobileNav = ({ onLogout }: MobileNavProps) => {
                     ? location.pathname === '/cases' || location.pathname.startsWith('/cases/')
                     : to === '/leads'
                       ? location.pathname === '/leads' || location.pathname.startsWith('/leads/')
+                    : to === '/subscription'
+                      ? location.pathname === '/subscription'
                     : to === '/profile'
                       ? location.pathname === '/profile'
                     : location.pathname === to;

@@ -3,10 +3,12 @@ import type { ConfirmInput, NotifyInput, PromptInput } from './types';
 export type NotifyFn = (input: NotifyInput) => string;
 export type ConfirmFn = (input: ConfirmInput) => Promise<boolean>;
 export type PromptFn = (input: PromptInput) => Promise<string | null>;
+export type PlanGateFn = () => void;
 
 let notifyRef: NotifyFn | null = null;
 let confirmRef: ConfirmFn | null = null;
 let promptRef: PromptFn | null = null;
+let planGateRef: PlanGateFn | null = null;
 
 export const setNotifyRef = (fn: NotifyFn | null) => {
   notifyRef = fn;
@@ -18,6 +20,10 @@ export const setConfirmRef = (fn: ConfirmFn | null) => {
 
 export const setPromptRef = (fn: PromptFn | null) => {
   promptRef = fn;
+};
+
+export const setPlanGateRef = (fn: PlanGateFn | null) => {
+  planGateRef = fn;
 };
 
 export const notify = (input: NotifyInput) => {
@@ -33,4 +39,8 @@ export const confirm = (input: ConfirmInput) => {
 export const prompt = (input: PromptInput) => {
   if (!promptRef) return Promise.resolve(null);
   return promptRef(input);
+};
+
+export const openPlanGate = () => {
+  planGateRef?.();
 };

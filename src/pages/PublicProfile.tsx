@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useGetPublicProfileQuery, useSubmitPublicLeadMutation } from '../api/apiSlice';
+import { useNotify } from '../notifications/NotificationProvider';
 
 type LeadFormState = {
   fullName: string;
@@ -35,14 +36,49 @@ const sanitizeVCardValue = (value?: string | null) =>
 
 const PublicProfile = () => {
   const { advocateId } = useParams<{ advocateId: string }>();
-  const { data: profile, isLoading, isError } = useGetPublicProfileQuery(advocateId ?? '', {
-    skip: !advocateId,
+  const notify = useNotify();
+  const isDemo = advocateId === 'demo';
+  const { data: fetchedProfile, isLoading, isError } = useGetPublicProfileQuery(advocateId ?? '', {
+    skip: !advocateId || isDemo,
   });
   const [submitPublicLead, { isLoading: isSubmittingLead }] = useSubmitPublicLeadMutation();
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
   const [leadForm, setLeadForm] = useState<LeadFormState>(defaultLeadForm);
   const [leadErrorMessage, setLeadErrorMessage] = useState('');
   const [leadSuccessMessage, setLeadSuccessMessage] = useState('');
+
+  const profile = useMemo(() => {
+    if (!isDemo) return fetchedProfile ?? null;
+    return {
+      profileSlug: 'demo',
+      fullName: 'Lawyer Name',
+      firstName: 'Lawyer',
+      lastName: 'Name',
+      gender: 'Prefer not to say',
+      barCouncilId: 'BAR-0000',
+      phoneNumber: '00000 00000',
+      email: 'lawyer.name@example.com',
+      officeAddress: 'Your Office Address, City, State',
+      publicBio:
+        'This is a demo public profile preview. Upgrade to publish your real advocate profile and start receiving consultation leads.',
+      isVerified: true,
+      practiceAreas: ['Civil Litigation', 'Criminal Defense', 'Family Law', 'Property Disputes', 'Corporate Advisory'],
+      whyClientConnectPoints: [
+        {
+          header: 'Verified professional identity',
+          description: 'Demonstrates credibility with a structured public presence and clear practice focus.',
+        },
+        {
+          header: 'Fast case intake',
+          description: 'Clients can submit consultation details through a guided questionnaire.',
+        },
+        {
+          header: 'Organized follow-ups',
+          description: 'Leads are tracked and updated through a dedicated pipeline inside LegisTrack.',
+        },
+      ],
+    };
+  }, [fetchedProfile, isDemo]);
 
   const initials = useMemo(() => {
     const source = profile?.fullName?.trim() || 'LT';
@@ -112,6 +148,19 @@ const PublicProfile = () => {
     setLeadErrorMessage('');
 
     try {
+      if (isDemo) {
+        const msg = 'This is just a demo request. It has no impact on your real leads.';
+        setLeadSuccessMessage(msg);
+        setIsQuestionnaireOpen(false);
+        setLeadForm(defaultLeadForm);
+        notify({
+          severity: 'info',
+          title: 'Demo Request',
+          message: msg,
+        });
+        return;
+      }
+
       const response = await submitPublicLead({
         advocateId,
         fullName: leadForm.fullName.trim(),
@@ -169,7 +218,9 @@ const PublicProfile = () => {
               </div>
               <div>
                 <p className="text-lg font-semibold tracking-tight">LegisTrack</p>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Verified Advocate Profile</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                  {isDemo ? 'Demo Advocate Profile' : 'Verified Advocate Profile'}
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -179,7 +230,7 @@ const PublicProfile = () => {
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
               >
                 <Download className="h-4 w-4" />
-                <span>Download VCard</span>
+                <span>{isDemo ? 'Download Demo VCard' : 'Download VCard'}</span>
               </button>
               <button
                 type="button"

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosError } from 'axios';
-import { notify } from '../notifications/notifyService';
+import { notify, openPlanGate } from '../notifications/notifyService';
 
 const baseUrl =
   import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7289/api';
@@ -48,6 +48,12 @@ httpClient.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status;
     if (status && status >= 400 && status < 600) {
+      const payload = error.response?.data as { code?: string } | string | null | undefined;
+      if (status === 403 && payload && typeof payload === 'object' && payload.code === 'PLAN_EXPIRED') {
+        openPlanGate();
+        return Promise.reject(error);
+      }
+
       const meta = humanizeStatus(status);
       const message = extractMessage(error);
       const persist = status >= 500 || status === 401;
@@ -63,4 +69,3 @@ httpClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-

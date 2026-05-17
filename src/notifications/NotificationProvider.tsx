@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ConfirmInput, NotificationItem, NotifyInput, NotifySeverity, PromptInput } from './types';
-import { setConfirmRef, setNotifyRef, setPromptRef } from './notifyService';
+import { setConfirmRef, setNotifyRef, setPlanGateRef, setPromptRef } from './notifyService';
 import { GavelIcon, ScalesIcon, ShieldIcon } from './icons';
 
 type NotifyContextValue = {
@@ -40,6 +40,44 @@ type NotificationProviderProps = {
   children: ReactNode;
 };
 
+type BillingFrequency = 'weekly' | 'monthly' | 'yearly';
+
+type Plan = {
+  id: 'weekly-sprint' | 'professional-desk' | 'enterprise-firm';
+  name: string;
+  highlight?: boolean;
+  canonical: { price: number; frequency: BillingFrequency };
+  features: string[];
+};
+
+const frequencies: Array<{ key: BillingFrequency; label: string; unit: string }> = [
+  { key: 'weekly', label: 'Weekly', unit: 'week' },
+  { key: 'monthly', label: 'Monthly', unit: 'month' },
+  { key: 'yearly', label: 'Yearly', unit: 'year' },
+];
+
+const planForFrequency: Record<BillingFrequency, Plan['id']> = {
+  weekly: 'weekly-sprint',
+  monthly: 'professional-desk',
+  yearly: 'enterprise-firm',
+};
+
+const frequencyForPlan: Record<Plan['id'], BillingFrequency> = {
+  'weekly-sprint': 'weekly',
+  'professional-desk': 'monthly',
+  'enterprise-firm': 'yearly',
+};
+
+const formatINR = (value: number, decimals: 0 | 2) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: decimals,
+    minimumFractionDigits: decimals,
+  }).format(value);
+
+const taxRate = 0.18;
+
 type DialogState =
   | {
       kind: 'confirm';
@@ -61,11 +99,91 @@ type DialogState =
 const NotificationProvider = ({ children }: NotificationProviderProps) => {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [planGateOpen, setPlanGateOpen] = useState(false);
+  const [billingFrequency, setBillingFrequency] = useState<BillingFrequency>(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('billingFrequency') : null;
+    if (stored === 'weekly' || stored === 'monthly' || stored === 'yearly') return stored;
+    return 'monthly';
+  });
+  const [selectedPlanId, setSelectedPlanId] = useState<Plan['id']>('professional-desk');
   const timers = useRef<Record<string, number>>({});
   const dialogResolveRef = useRef<((value: boolean | string | null) => void) | null>(null);
   const activeDialogKindRef = useRef<DialogState['kind'] | null>(null);
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const promptInputRef = useRef<HTMLInputElement | null>(null);
+
+  const plans: Plan[] = useMemo(
+    () => [
+      {
+        id: 'weekly-sprint',
+        name: 'Weekly Sprint',
+        canonical: { price: 99, frequency: 'weekly' },
+        features: [
+          '100 Cases Registration',
+          '100 Transactional Emails & SMS Messages',
+          'Daily grouped hearings dashboard',
+          'Standard support',
+        ],
+      },
+      {
+        id: 'professional-desk',
+        name: 'Professional Desk',
+        highlight: true,
+        canonical: { price: 199, frequency: 'monthly' },
+        features: [
+          '1,000 Cases Registration/mo',
+          '1,000 Automated Emails & Messages/mo',
+          'Priority background NJDG (eCourts) syncing',
+          'Advanced year/month filters',
+          'Priority support',
+        ],
+      },
+      {
+        id: 'enterprise-firm',
+        name: 'Enterprise Firm',
+        canonical: { price: 1999, frequency: 'yearly' },
+        features: [
+          'Unlimited Case Registrations',
+          'Unlimited Transactional Emails & Messages',
+          'Top-priority nightly eCourts processing queues',
+          'Custom communication API routing',
+          '24/7 dedicated account manager',
+        ],
+      },
+    ],
+    []
+  );
+
+  const activeFrequencyMeta = useMemo(
+    () => frequencies.find((f) => f.key === billingFrequency) ?? frequencies[1],
+    [billingFrequency]
+  );
+
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.id === selectedPlanId) ?? plans[1],
+    [plans, selectedPlanId]
+  );
+
+  const pricingForPlan = useCallback(
+    (plan: Plan) => {
+      return plan.canonical.price;
+    },
+    [billingFrequency]
+  );
+
+  const subtotal = useMemo(() => pricingForPlan(selectedPlan), [pricingForPlan, selectedPlan]);
+  const gst = useMemo(() => subtotal * taxRate, [subtotal]);
+  const total = useMemo(() => subtotal + gst, [subtotal, gst]);
+
+  const closePlanGate = useCallback(() => {
+    setPlanGateOpen(false);
+  }, []);
+
+  const goToPricing = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.location.assign('/subscription');
+    }
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     setItems((current) => current.filter((item) => item.id !== id));
@@ -90,8 +208,15 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
       const item: NotificationItem = { ...input, id, createdAt, persist };
 
       setItems((current) => {
-        const next = [item, ...current];
-        return next.slice(0, 5);
+        current.forEach((existing) => {
+          const timer = timers.current[existing.id];
+          if (timer) {
+            window.clearTimeout(timer);
+            delete timers.current[existing.id];
+          }
+        });
+
+        return [item];
       });
 
       if (!persist) {
@@ -105,6 +230,15 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
     },
     [dismiss]
   );
+
+  const proceedToSecureCheckout = useCallback(() => {
+    notify({
+      severity: 'info',
+      title: 'Secure Checkout',
+      message: `${selectedPlan.name} • ${activeFrequencyMeta.label} billing • Total ${formatINR(total, 2)}`,
+    });
+    goToPricing();
+  }, [activeFrequencyMeta.label, goToPricing, notify, selectedPlan.name, total]);
 
   const resolveActiveDialog = useCallback((value: boolean | string | null) => {
     const resolve = dialogResolveRef.current;
@@ -176,12 +310,35 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
     setNotifyRef(notify);
     setConfirmRef(confirm);
     setPromptRef(prompt);
+    setPlanGateRef(() => {
+      const stored = typeof window !== 'undefined' ? window.localStorage.getItem('billingFrequency') : null;
+      const nextFrequency =
+        stored === 'weekly' || stored === 'monthly' || stored === 'yearly' ? stored : 'monthly';
+      setBillingFrequency(nextFrequency);
+      setSelectedPlanId(planForFrequency[nextFrequency]);
+      setPlanGateOpen(true);
+    });
     return () => {
       setNotifyRef(null);
       setConfirmRef(null);
       setPromptRef(null);
+      setPlanGateRef(null);
     };
   }, [notify, confirm, prompt]);
+
+  useEffect(() => {
+    if (!planGateOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [planGateOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('billingFrequency', billingFrequency);
+  }, [billingFrequency]);
 
   useEffect(() => {
     if (!dialog) return;
@@ -280,6 +437,152 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
               >
                 {dialog.confirmText}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {planGateOpen && (
+        <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 p-4 lg:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Secure Plan Validation"
+            className="w-full max-w-5xl rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
+          >
+            <div className="p-6 sm:p-8">
+              <div className="text-center">
+                <p className="text-xl sm:text-2xl font-extrabold text-legal-corporate">Secure Plan Validation</p>
+                <p className="mt-3 text-sm sm:text-base text-gray-700 max-w-3xl mx-auto">
+                  Your free trial limits have been reached. Select a baseline plan below to preserve your existing case
+                  data and resume full services.
+                </p>
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <div
+                  className="inline-flex rounded-2xl bg-gray-50 p-1 ring-1 ring-gray-200"
+                  role="tablist"
+                  aria-label="Billing frequency"
+                >
+                  {frequencies.map((f) => {
+                    const active = f.key === billingFrequency;
+                    return (
+                      <button
+                        key={f.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+                          active ? 'bg-[#003366] text-white' : 'text-gray-700 hover:bg-white'
+                        }`}
+                        onClick={() => {
+                          setBillingFrequency(f.key);
+                          setSelectedPlanId(planForFrequency[f.key]);
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {plans.map((plan) => {
+                    const selected = plan.id === selectedPlanId;
+                    const highlight = plan.highlight === true;
+                    const price = pricingForPlan(plan);
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        className={`text-left rounded-3xl border bg-white p-5 transition-all ${
+                          selected
+                            ? 'border-legal-gold shadow-md'
+                            : highlight
+                              ? 'border-legal-gold/50'
+                              : 'border-gray-100 hover:border-gray-200'
+                        }`}
+                        onClick={() => {
+                          setSelectedPlanId(plan.id);
+                          setBillingFrequency(frequencyForPlan[plan.id]);
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-legal-corporate">{plan.name}</p>
+                            <p className="mt-3 text-2xl font-extrabold text-legal-corporate">
+                              {formatINR(price, 0)}
+                              <span className="ml-1 text-sm font-semibold text-gray-600">
+                                / {frequencies.find((f) => f.key === plan.canonical.frequency)?.unit ?? plan.canonical.frequency}
+                              </span>
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">Excluding GST</p>
+                          </div>
+                          {highlight && (
+                            <span className="rounded-full bg-legal-gold px-3 py-1 text-xs font-bold text-legal-dark">
+                              Most Popular
+                            </span>
+                          )}
+                        </div>
+
+                        <ul className="mt-4 space-y-2">
+                          {plan.features.map((feature) => (
+                            <li key={feature} className="text-xs text-gray-700">
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-3xl bg-white p-6 ring-1 ring-gray-100">
+                  <p className="text-sm font-bold text-legal-corporate">Cost Breakdown</p>
+                  <div className="mt-5 space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-gray-700">Subtotal</p>
+                      <p className="text-sm font-bold text-legal-corporate">{formatINR(subtotal, 2)}</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-gray-700">GST (18%)</p>
+                      <p className="text-sm font-bold text-legal-corporate">{formatINR(gst, 2)}</p>
+                    </div>
+                    <div className="h-px bg-gray-100" />
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-base font-extrabold text-legal-corporate">Total</p>
+                      <p className="text-base font-extrabold text-legal-corporate">{formatINR(total, 2)}</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-5 text-xs text-gray-500">
+                    All listed prices are exclusive of GST (18%). Standard statutory taxes will be applied at secure
+                    checkout.
+                  </p>
+
+                  <div className="mt-6 flex flex-col gap-3">
+                    <button
+                      type="button"
+                      className="w-full rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95"
+                      onClick={proceedToSecureCheckout}
+                    >
+                      Proceed to Secure Checkout
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full text-sm font-semibold text-gray-600 hover:underline"
+                      onClick={() => {
+                        closePlanGate();
+                        goToPricing();
+                      }}
+                    >
+                      Return to Plans
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

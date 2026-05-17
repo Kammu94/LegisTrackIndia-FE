@@ -2,16 +2,34 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
-import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, Inbox, User } from 'lucide-react';
+import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, Inbox, User, CreditCard } from 'lucide-react';
 import MobileNav from '../components/MobileNav';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 import { useGetMyLeadsQuery } from '../api/apiSlice';
+import { useGetCasesQuery, useGetHearingsQuery } from '../api/caseApi';
+import dayjs from 'dayjs';
 
 const Dashboard = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: leads } = useGetMyLeadsQuery();
+  const { data: cases } = useGetCasesQuery();
+
+  const tomorrowStart = dayjs().add(1, 'day').startOf('day').toISOString();
+  const tomorrowEnd = dayjs().add(1, 'day').endOf('day').toISOString();
+  const { data: tomorrowHearings } = useGetHearingsQuery({
+    startDate: tomorrowStart,
+    endDate: tomorrowEnd,
+  });
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const isFreeTier =
+    (user?.subscriptionState?.planType ?? '').toLowerCase() === 'free' &&
+    user?.subscriptionState?.premiumOverride !== true;
+  const casesUsed = user?.subscriptionState?.totalCasesCreated ?? 0;
+  const activeCasesCount = (cases ?? []).filter((item) => item.status === 0).length;
+  const hearingsTomorrowCount = tomorrowHearings?.length ?? 0;
 
   const handleLogout = () => {
     dispatch(logout());
@@ -44,6 +62,10 @@ const Dashboard = () => {
             <Inbox className="h-5 w-5" />
             <span>Leads</span>
           </Link>
+          <Link to="/subscription" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <CreditCard className="h-5 w-5" />
+            <span>Subscription</span>
+          </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />
             <span>Profile</span>
@@ -63,14 +85,14 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white shadow-sm min-h-16 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 border-b border-gray-200">
+        <header className="bg-white shadow-sm min-h-16 flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 border-b border-gray-200">
           <div className="flex items-center gap-3 min-w-0">
             <MobileNav onLogout={handleLogout} />
-            <h1 className="text-lg sm:text-xl font-semibold text-legal-corporate min-w-0">Advocate Dashboard</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-legal-corporate min-w-0 truncate">Dashboard</h1>
           </div>
           <div className="flex items-center gap-3 min-w-0 max-w-full">
             <div className="text-right min-w-0">
-              <p className="text-sm font-medium text-gray-900">{getUserDisplayName(user)}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{getUserDisplayName(user)}</p>
               <p className="text-xs text-gray-500">Professional Account</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-legal-gold flex items-center justify-center text-legal-dark font-bold shrink-0">
@@ -79,19 +101,31 @@ const Dashboard = () => {
           </div>
         </header>
 
+        {isFreeTier && (
+          <div className="bg-[#003366] text-white px-4 sm:px-6 lg:px-8 py-3">
+            <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
+              <p className="text-sm font-semibold">
+                You are on the Free Tier ({Math.min(casesUsed, 5)}/5 cases used). Upgrade for unlimited access.
+              </p>
+              <Link
+                to="/subscription"
+                className="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"
+              >
+                Upgrade
+              </Link>
+            </div>
+          </div>
+        )}
+
         <main className="p-4 sm:p-6 lg:p-8 w-full max-w-full">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-gray-500 text-sm font-medium">Total Active Cases</h3>
-              <p className="text-3xl font-bold text-legal-corporate mt-2">0</p>
+              <p className="text-3xl font-bold text-legal-corporate mt-2">{activeCasesCount}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h3 className="text-gray-500 text-sm font-medium">Hearings Tomorrow</h3>
-              <p className="text-3xl font-bold text-legal-gold mt-2">0</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h3 className="text-gray-500 text-sm font-medium">Pending Payments</h3>
-              <p className="text-3xl font-bold text-red-600 mt-2"> 0</p>
+              <p className="text-3xl font-bold text-legal-gold mt-2">{hearingsTomorrowCount}</p>
             </div>
             <Link to="/leads" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 block hover:border-legal-gold/40 transition-colors">
               <h3 className="text-gray-500 text-sm font-medium">Incoming Leads</h3>

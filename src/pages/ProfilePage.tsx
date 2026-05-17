@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFieldArray } from 'react-hook-form';
-import { Briefcase, Calendar, Inbox, LayoutDashboard, LogOut, Mail, MapPin, Phone, Plus, Scale, Trash2, User } from 'lucide-react';
+import { Briefcase, Calendar, Copy, CreditCard, Inbox, LayoutDashboard, Lock, LogOut, Mail, MapPin, Phone, Plus, Scale, Trash2, User } from 'lucide-react';
 import { useGetProfileQuery, useUpdateProfileMutation } from '../api/apiSlice';
 import type { RootState } from '../store/store';
 import { logout, updateUser } from '../features/auth/authSlice';
@@ -139,6 +139,10 @@ const ProfilePage = () => {
     navigate('/login');
   };
 
+  const planType = (profile?.subscriptionState?.planType ?? user?.subscriptionState?.planType ?? 'Free').toLowerCase();
+  const premiumOverride = profile?.subscriptionState?.premiumOverride ?? user?.subscriptionState?.premiumOverride;
+  const isPaidUser = planType !== 'free' || premiumOverride === true;
+
   const profileSlug = profile?.profileSlug ?? user?.profileSlug ?? '';
   const publicProfileUrl = profileSlug
     ? `${window.location.origin}/profile/${profileSlug}`
@@ -207,6 +211,10 @@ const ProfilePage = () => {
             <Inbox className="h-5 w-5" />
             <span>Leads</span>
           </Link>
+          <Link to="/subscription" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <CreditCard className="h-5 w-5" />
+            <span>Subscription</span>
+          </Link>
           <Link to="/profile" className="flex items-center space-x-3 bg-legal-corporate p-3 rounded-lg text-white">
             <User className="h-5 w-5" />
             <span>Profile</span>
@@ -245,40 +253,79 @@ const ProfilePage = () => {
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
               <div className="text-center sm:text-left mb-8">
-                <div className="mb-4 flex max-w-full flex-col items-stretch gap-2 text-xs font-semibold text-legal-corporate sm:flex-row sm:flex-wrap sm:items-center">
-                  <a
-                    href={publicProfileUrl || undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-w-0 max-w-full items-center rounded-2xl border border-legal-gold/30 bg-legal-gold/10 px-4 py-2 hover:bg-legal-gold/20"
-                    title={publicProfileUrl || 'Public profile URL not available'}
-                  >
-                    <span className="block min-w-0 break-all leading-5">
-                      {publicProfileUrl || 'Public profile URL not available'}
-                    </span>
-                  </a>
-                  {publicProfileUrl && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={handleCopyPublicUrl}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          void handleCopyPublicUrl();
-                        }
-                      }}
-                      className="inline-flex w-fit cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-gray-600 transition-colors hover:border-legal-gold hover:text-legal-corporate"
-                    >
-                      {copyMessage || 'Copy'}
-                    </span>
-                  )}
-                </div>
                 <h2 className="text-2xl font-bold text-legal-corporate">Manage Your Profile</h2>
                 <p className="text-sm text-gray-500 mt-2">
                   Keep your professional details up to date for your LegisTrack account.
                 </p>
               </div>
+
+              {isPaidUser ? (
+                <div className="mb-6 rounded-2xl border border-gray-200 bg-white px-4 py-4 sm:px-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-legal-corporate">Public profile URL</p>
+                      <p className="mt-1 text-xs text-gray-500">Share your profile link with prospective clients.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyPublicUrl}
+                        disabled={!publicProfileUrl}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition-colors hover:border-legal-gold hover:text-legal-corporate disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Copy public profile URL"
+                        title={publicProfileUrl ? 'Copy link' : 'Public profile URL not available'}
+                      >
+                        <Copy className="h-5 w-5" />
+                      </button>
+                      {copyMessage && <span className="text-xs font-semibold text-legal-corporate">{copyMessage}</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <a
+                      href={publicProfileUrl || undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex min-w-0 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:border-legal-gold/40 hover:bg-legal-gold/5"
+                      title={publicProfileUrl || 'Public profile URL not available'}
+                    >
+                      <span className="min-w-0 break-all text-sm font-medium text-gray-700 group-hover:text-legal-corporate">
+                        {publicProfileUrl || 'Public profile URL not available'}
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-gray-700">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-legal-corporate">Public profile URL is a paid feature</p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Upgrade to unlock your public profile link and sharing tools.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Link
+                      to="/profile/demo"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-legal-corporate hover:bg-gray-50"
+                    >
+                      View Demo Page
+                    </Link>
+                    <Link
+                      to="/subscription"
+                      className="inline-flex items-center justify-center rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95"
+                    >
+                      Subscribe
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {isError && (
                 <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">

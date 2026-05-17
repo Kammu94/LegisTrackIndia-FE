@@ -15,6 +15,7 @@ import {
   StickyNote,
   Target,
   User,
+  CreditCard,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useDispatch, useSelector } from 'react-redux';
@@ -105,6 +106,10 @@ const LeadDetailPage = () => {
             <Link to="/leads" className="flex items-center space-x-3 bg-legal-corporate p-3 rounded-lg text-white">
               <Inbox className="h-5 w-5" />
               <span>Leads</span>
+            </Link>
+            <Link to="/subscription" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+              <CreditCard className="h-5 w-5" />
+              <span>Subscription</span>
             </Link>
             <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
               <User className="h-5 w-5" />

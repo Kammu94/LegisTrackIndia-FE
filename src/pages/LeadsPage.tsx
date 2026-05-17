@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Briefcase, Calendar, Inbox, LayoutDashboard, LogOut, Scale, User } from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, CreditCard, Inbox, LayoutDashboard, Lock, LogOut, Scale, User } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useDispatch, useSelector } from 'react-redux';
 import { LeadStatus, useGetMyLeadsQuery, type Lead } from '../api/apiSlice';
@@ -23,6 +23,9 @@ const LeadsPage = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: leads, isLoading, error } = useGetMyLeadsQuery();
+  const isPaidUser =
+    (user?.subscriptionState?.planType ?? 'Free').toLowerCase() !== 'free' ||
+    user?.subscriptionState?.premiumOverride === true;
 
   const handleLogout = () => {
     dispatch(logout());
@@ -60,6 +63,10 @@ const LeadsPage = () => {
           <Link to="/leads" className="flex items-center space-x-3 bg-legal-corporate p-3 rounded-lg text-white">
             <Inbox className="h-5 w-5" />
             <span>Leads</span>
+          </Link>
+          <Link to="/subscription" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <CreditCard className="h-5 w-5" />
+            <span>Subscription</span>
           </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />
@@ -119,103 +126,143 @@ const LeadsPage = () => {
             </div>
           )}
 
-          {!error && totalLeads === 0 && (
-            <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center py-12 sm:py-20">
-              <div className="max-w-md mx-auto">
-                <Inbox className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-                <h2 className="text-xl sm:text-2xl font-bold text-legal-corporate">No leads yet</h2>
-                <p className="text-gray-500 mt-2">
-                  New consultation requests from your public profile will appear here automatically.
-                </p>
+          {!error && (
+            <div className="relative mt-8">
+              <div className={isPaidUser ? '' : 'pointer-events-none select-none blur-sm'}>
+                {totalLeads === 0 && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center py-12 sm:py-20">
+                    <div className="max-w-md mx-auto">
+                      <Inbox className="h-16 w-16 text-gray-200 mx-auto mb-4" />
+                      <h2 className="text-xl sm:text-2xl font-bold text-legal-corporate">No leads yet</h2>
+                      <p className="text-gray-500 mt-2">
+                        New consultation requests from your public profile will appear here automatically.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {totalLeads > 0 && (
+                  <>
+                    <div className="space-y-4 md:hidden">
+                      {sortedLeads.map((lead) => {
+                        const statusMeta = getLeadStatusMeta(lead.status);
+
+                        return (
+                          <Link
+                            key={lead.id}
+                            to={`/leads/${lead.id}`}
+                            className="block rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-legal-gold/40"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-base font-bold text-legal-corporate break-words">{lead.fullName}</p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
+                                </p>
+                              </div>
+                              <span
+                                className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusMeta.colorClass}`}
+                              >
+                                {statusMeta.label}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm text-gray-700 break-words">{lead.message}</p>
+                            <div className="mt-4 flex items-center justify-between gap-3">
+                              <span className="rounded-full bg-legal-gold/10 px-3 py-1 text-[11px] font-semibold text-legal-corporate">
+                                {lead.matterType}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-sm font-semibold text-legal-corporate">
+                                View Lead
+                                <ArrowRight className="h-4 w-4" />
+                              </span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+
+                    <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Prospective Client
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Matter Type
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Submitted
+                            </th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {sortedLeads.map((lead) => {
+                            const statusMeta = getLeadStatusMeta(lead.status);
+
+                            return (
+                              <tr key={lead.id} className="hover:bg-gray-50 transition-colors align-top">
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-semibold text-legal-corporate">{lead.fullName}</div>
+                                  <div className="mt-1 text-sm text-gray-500">{lead.email}</div>
+                                  <div className="mt-2 text-sm text-gray-700 max-w-md break-words">{lead.message}</div>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-900">{lead.matterType}</td>
+                                <td className="px-6 py-4">
+                                  <span
+                                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.colorClass}`}
+                                  >
+                                    {statusMeta.label}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                                  {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <Link
+                                    to={`/leads/${lead.id}`}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-legal-gold/30 px-4 py-2 text-sm font-semibold text-legal-corporate hover:bg-amber-50"
+                                  >
+                                    View Lead
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          )}
 
-          {!error && totalLeads > 0 && (
-            <>
-              <div className="mt-8 space-y-4 md:hidden">
-                {sortedLeads.map((lead) => {
-                  const statusMeta = getLeadStatusMeta(lead.status);
-
-                  return (
+              {!isPaidUser && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="mx-auto w-full max-w-md rounded-3xl border border-gray-100 bg-white/95 p-6 text-center shadow-lg backdrop-blur">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-700">
+                      <Lock className="h-6 w-6" />
+                    </div>
+                    <p className="mt-4 text-base font-bold text-legal-corporate">Leads are available on paid plans</p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Upgrade to unlock your incoming leads list while keeping your existing data safe.
+                    </p>
                     <Link
-                      key={lead.id}
-                      to={`/leads/${lead.id}`}
-                      className="block rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:border-legal-gold/40"
+                      to="/subscription"
+                      className="mt-5 inline-flex items-center justify-center rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-base font-bold text-legal-corporate break-words">{lead.fullName}</p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
-                          </p>
-                        </div>
-                        <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${statusMeta.colorClass}`}>
-                          {statusMeta.label}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-700 break-words">{lead.message}</p>
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-legal-gold/10 px-3 py-1 text-[11px] font-semibold text-legal-corporate">
-                          {lead.matterType}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-legal-corporate">
-                          View Lead
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      </div>
+                      Subscribe
                     </Link>
-                  );
-                })}
-              </div>
-
-              <div className="hidden md:block mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prospective Client</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matter Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {sortedLeads.map((lead) => {
-                      const statusMeta = getLeadStatusMeta(lead.status);
-
-                      return (
-                        <tr key={lead.id} className="hover:bg-gray-50 transition-colors align-top">
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-semibold text-legal-corporate">{lead.fullName}</div>
-                            <div className="mt-1 text-sm text-gray-500">{lead.email}</div>
-                            <div className="mt-2 text-sm text-gray-700 max-w-md break-words">{lead.message}</div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{lead.matterType}</td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.colorClass}`}>
-                              {statusMeta.label}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                            {dayjs(lead.submittedAtUtc).format('DD MMM YYYY, hh:mm A')}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <Link
-                              to={`/leads/${lead.id}`}
-                              className="inline-flex items-center gap-2 rounded-xl border border-legal-gold/30 px-4 py-2 text-sm font-semibold text-legal-corporate hover:bg-amber-50"
-                            >
-                              View Lead
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </main>
       </div>

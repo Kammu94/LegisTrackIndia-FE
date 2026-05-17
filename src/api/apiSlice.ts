@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { logout } from '../features/auth/authSlice';
-import { notify } from '../notifications/notifyService';
+import { notify, openPlanGate } from '../notifications/notifyService';
 
 const baseUrl =
   import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7289/api';
@@ -9,6 +9,15 @@ const baseUrl =
 export type WhyClientConnectPoint = {
   header: string;
   description: string;
+};
+
+export type SubscriptionState = {
+  planType: string;
+  createdAtUtc: string;
+  totalCasesCreated: number;
+  totalMessagesSent: number;
+  premiumOverride?: boolean;
+  premiumOverrideAtUtc?: string | null;
 };
 
 export type AuthUser = {
@@ -24,6 +33,7 @@ export type AuthUser = {
   fullName: string;
   email: string;
   profileSlug: string;
+  subscriptionState?: SubscriptionState;
 };
 
 export type AuthResponse = AuthUser & {
@@ -158,6 +168,23 @@ const baseQueryWithAuthRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchB
   }
 
   if (statusNumber && statusNumber >= 400 && statusNumber < 600) {
+    const data = result.error?.data as
+      | { message?: string; title?: string; code?: string }
+      | string
+      | null
+      | undefined;
+
+    if (
+      statusNumber === 403 &&
+      typeof data === 'object' &&
+      data &&
+      typeof data.code === 'string' &&
+      data.code === 'PLAN_EXPIRED'
+    ) {
+      openPlanGate();
+      return result;
+    }
+
     const meta =
       statusNumber === 400
         ? { title: 'Invalid Request', severity: 'warning' as const }
@@ -170,12 +197,6 @@ const baseQueryWithAuthRedirect: BaseQueryFn<string | FetchArgs, unknown, FetchB
               : statusNumber >= 500
                 ? { title: 'Server Error', severity: 'error' as const }
                 : { title: 'Request Failed', severity: 'error' as const };
-
-    const data = result.error?.data as
-      | { message?: string; title?: string }
-      | string
-      | null
-      | undefined;
 
     const message =
       typeof data === 'string'

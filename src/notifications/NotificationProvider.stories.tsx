@@ -18,27 +18,6 @@ const Demo = ({ autoTrigger }: DemoProps) => {
       title: 'Information',
       message: 'This is an informational notification.',
     });
-    notify({
-      severity: 'success',
-      title: 'Success',
-      message: 'Changes saved successfully.',
-    });
-    notify({
-      severity: 'warning',
-      title: 'Warning',
-      message: 'Please review the case details before proceeding.',
-    });
-    notify({
-      severity: 'error',
-      title: 'Critical Error',
-      message: 'A critical error occurred. Please contact support if this continues.',
-    });
-    notify({
-      severity: 'security',
-      title: 'Security',
-      message: 'Your session has expired. Please log in again.',
-      persist: true,
-    });
   }, [autoTrigger, notify]);
 
   return (

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import NotificationProvider, { useNotificationCenter, useNotify } from './NotificationProvider';
 
 const TestHarness = () => {
@@ -182,6 +182,74 @@ describe('NotificationProvider', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Trigger Security' }));
     expect(screen.getByText('Security')).toBeInTheDocument();
+    expect(screen.queryByText('Warning')).not.toBeInTheDocument();
+  });
+
+  it('shows only the latest notification', () => {
+    const Harness = () => {
+      const notify = useNotify();
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() =>
+              notify({
+                severity: 'success',
+                title: 'Saved',
+                message: 'First save',
+              })
+            }
+          >
+            Save 1
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              notify({
+                severity: 'success',
+                title: 'Saved',
+                message: 'Second save',
+              })
+            }
+          >
+            Save 2
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              notify({
+                severity: 'info',
+                title: 'Info',
+                message: 'Info message',
+              })
+            }
+          >
+            Info
+          </button>
+        </div>
+      );
+    };
+
+    render(
+      <NotificationProvider>
+        <Harness />
+      </NotificationProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save 1' }));
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText('First save')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save 2' }));
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.getByText('Second save')).toBeInTheDocument();
+    expect(screen.queryByText('First save')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Info' }));
+    const toast = screen.getByRole('status');
+    expect(within(toast).getByText('Info')).toBeInTheDocument();
+    expect(within(toast).getByText('Info message')).toBeInTheDocument();
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument();
   });
 
   it('does not auto-dismiss errors when persist is explicitly false and severity has no timeout', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGetHearingsQuery, type HearingListDto } from '../api/caseApi';
-import { Scale, Calendar, MapPin, Search, Filter, ArrowRight, LayoutDashboard, Briefcase, Inbox, LogOut, User, ChevronDown } from 'lucide-react';
+import { Scale, Calendar, MapPin, Search, Filter, ArrowRight, LayoutDashboard, Briefcase, Inbox, LogOut, User, ChevronDown, CreditCard } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
@@ -63,7 +63,7 @@ const Hearings = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(currentDate.month());
+  const [expandedMonthIndex, setExpandedMonthIndex] = useState(currentDate.month());
   const [expandedDayKeys, setExpandedDayKeys] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<HearingFilters>({
     caseSearch: '',
@@ -101,21 +101,21 @@ const Hearings = () => {
     [hearings]
   );
 
-  const selectedMonth = monthlyGroups[selectedMonthIndex];
+  const selectedMonth = monthlyGroups[expandedMonthIndex];
   const selectedMonthGroups = selectedMonth?.dailyGroups ?? [];
   const totalHearings = hearings?.length ?? 0;
   const todayHearingsCount =
     hearings?.filter((hearing) => dayjs(hearing.hearingDate).isSame(currentDate, 'day')).length ?? 0;
 
   useEffect(() => {
-    if (selectedYear !== currentYear || selectedMonthIndex !== currentDate.month()) {
+    if (selectedYear !== currentYear || expandedMonthIndex !== currentDate.month()) {
       return;
     }
 
     if (selectedMonthGroups.some((group) => group.dateKey === todayKey)) {
       setExpandedDayKeys((current) => ({ ...current, [todayKey]: true }));
     }
-  }, [selectedMonthGroups, selectedMonthIndex, selectedYear]);
+  }, [selectedMonthGroups, expandedMonthIndex, selectedYear]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -153,6 +153,10 @@ const Hearings = () => {
           <Link to="/leads" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <Inbox className="h-5 w-5" />
             <span>Leads</span>
+          </Link>
+          <Link to="/subscription" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
+            <CreditCard className="h-5 w-5" />
+            <span>Subscription</span>
           </Link>
           <Link to="/profile" className="flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors">
             <User className="h-5 w-5" />
@@ -220,7 +224,8 @@ const Hearings = () => {
                   onChange={(e) => {
                     const nextYear = Number(e.target.value);
                     setSelectedYear(nextYear);
-                    setSelectedMonthIndex(nextYear === currentYear ? currentDate.month() : 0);
+                    setExpandedMonthIndex(nextYear === currentYear ? currentDate.month() : 0);
+                    setExpandedDayKeys({});
                   }}
                 >
                   {availableYears.map((year) => (
@@ -264,7 +269,8 @@ const Hearings = () => {
                   onClick={() => {
                     setFilters({ caseSearch: '', status: '' });
                     setSelectedYear(currentYear);
-                    setSelectedMonthIndex(currentDate.month());
+                    setExpandedMonthIndex(currentDate.month());
+                    setExpandedDayKeys({});
                   }}
                   className="text-sm font-bold text-legal-corporate hover:text-legal-gold transition-colors w-full md:w-auto md:self-center"
                 >
@@ -285,14 +291,12 @@ const Hearings = () => {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {monthlyGroups.map((month) => {
-                const isSelected = selectedMonthIndex === month.monthIndex;
+                const isSelected = expandedMonthIndex === month.monthIndex;
                 const isEmpty = month.hearingCount === 0;
 
                 return (
-                  <button
+                  <div
                     key={month.monthIndex}
-                    type="button"
-                    onClick={() => setSelectedMonthIndex(month.monthIndex)}
                     className={`rounded-2xl border p-4 text-left transition-all ${
                       isSelected
                         ? 'border-legal-gold bg-amber-50 shadow-sm'
@@ -301,125 +305,127 @@ const Hearings = () => {
                           : 'border-gray-100 bg-white hover:border-legal-gold/40'
                     }`}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedMonthIndex(month.monthIndex)}
+                      className="flex w-full flex-wrap items-center justify-between gap-3"
+                    >
                       <div className="min-w-0">
                         <p className="text-base font-bold text-legal-corporate">{month.monthName}</p>
                         <p className={`mt-1 text-xs ${isEmpty ? 'text-gray-400' : 'text-gray-500'}`}>
                           {isEmpty ? 'No hearings scheduled' : 'Pending hearings scheduled'}
                         </p>
                       </div>
-                      <span className={`rounded-full px-3 py-1 text-sm font-black ${
-                        isEmpty ? 'bg-gray-100 text-gray-500' : 'bg-legal-gold/15 text-legal-corporate'
-                      }`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-black ${
+                          isEmpty ? 'bg-gray-100 text-gray-500' : 'bg-legal-gold/15 text-legal-corporate'
+                        }`}
+                      >
                         {month.hearingCount}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-legal-corporate">Daily Drill-Down</h2>
-                <p className="text-sm text-gray-500">
-                  {selectedMonth?.monthName} {selectedYear} grouped into daily hearing bars.
-                </p>
-              </div>
-              <div className="rounded-full bg-legal-gold/10 px-4 py-2 text-sm font-black text-legal-corporate">
-                {selectedMonth?.hearingCount ?? 0} total
-              </div>
-            </div>
-
-            {!isLoading && selectedMonthGroups.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-gray-500">
-                No hearings scheduled in {selectedMonth?.monthName} {selectedYear}.
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {selectedMonthGroups.map((group) => {
-                const isExpanded = Boolean(expandedDayKeys[group.dateKey]);
-
-                return (
-                  <div key={group.dateKey} className="overflow-hidden rounded-2xl border border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => toggleDay(group.dateKey)}
-                      className="flex w-full flex-col gap-3 bg-white px-4 py-4 text-left transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <ChevronDown className={`h-5 w-5 shrink-0 text-legal-corporate transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                        <div className="min-w-0">
-                          <p className="text-base font-bold text-legal-corporate break-words">
-                            {group.date.format('dddd, MMMM D, YYYY')}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            {group.date.isSame(currentDate, 'day')
-                              ? 'Today'
-                              : `${group.hearings.length} scheduled appearance${group.hearings.length === 1 ? '' : 's'}`}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="self-start rounded-full bg-legal-gold/15 px-4 py-1.5 text-sm font-black text-legal-corporate sm:self-auto">
-                        {group.hearings.length}
                       </span>
                     </button>
 
-                    <div className={`grid transition-all duration-300 ease-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-70'}`}>
-                      <div className="overflow-hidden">
-                        <div className="border-t border-gray-100 bg-gray-50 p-4 sm:p-6">
+                    {isSelected && (
+                      <div className="mt-4">
+                        {month.dailyGroups.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-gray-200 bg-white/70 px-4 py-6 text-center text-sm text-gray-500">
+                            No hearings scheduled in {month.monthName} {selectedYear}.
+                          </div>
+                        ) : (
                           <div className="space-y-3">
-                            {group.hearings.map((hearing) => (
-                              <button
-                                key={hearing.id}
-                                type="button"
-                                onClick={() => navigate(`/cases/${hearing.caseId}`)}
-                                className="flex w-full flex-col gap-4 rounded-2xl border border-white bg-white p-4 text-left shadow-sm transition-colors hover:border-legal-gold/40 hover:bg-amber-50/30 sm:flex-row sm:items-start sm:justify-between"
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-bold text-legal-corporate break-words">{hearing.clientName}</p>
-                                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600">
-                                      {dayjs(hearing.hearingDate).format('hh:mm A')}
-                                    </span>
-                                  </div>
+                            {month.dailyGroups.map((group) => {
+                              const isExpanded = Boolean(expandedDayKeys[group.dateKey]);
 
-                                  <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-gray-700 md:grid-cols-2">
-                                    <div>
-                                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Case Title</p>
-                                      <p className="mt-1 break-words">{hearing.clientName}</p>
+                              return (
+                                <div key={group.dateKey} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleDay(group.dateKey)}
+                                    className="flex w-full flex-col gap-3 bg-white px-4 py-3 text-left transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                                  >
+                                    <div className="flex min-w-0 items-center gap-3">
+                                      <ChevronDown
+                                        className={`h-5 w-5 shrink-0 text-legal-corporate transition-transform ${
+                                          isExpanded ? 'rotate-180' : ''
+                                        }`}
+                                      />
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-bold text-legal-corporate break-words">
+                                          {group.date.format('ddd, MMM D')}
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-gray-500">
+                                          {group.date.isSame(currentDate, 'day')
+                                            ? 'Today'
+                                            : `${group.hearings.length} hearing${group.hearings.length === 1 ? '' : 's'}`}
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">CNR</p>
-                                      <p className="mt-1 break-words">{hearing.caseNumber}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Court Room</p>
-                                      <p className="mt-1 flex items-start gap-2 break-words">
-                                        <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-gray-400" />
-                                        <span>{hearing.location || 'To be updated'}</span>
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">Purpose</p>
-                                      <p className="mt-1 break-words">{hearing.notes || 'Purpose not recorded yet'}</p>
+                                    <span className="self-start rounded-full bg-legal-gold/15 px-3 py-1 text-xs font-black text-legal-corporate sm:self-auto">
+                                      {group.hearings.length}
+                                    </span>
+                                  </button>
+
+                                  <div
+                                    className={`grid transition-all duration-300 ease-out ${
+                                      isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-70'
+                                    }`}
+                                  >
+                                    <div className="overflow-hidden">
+                                      <div className="border-t border-gray-100 bg-gray-50 p-4">
+                                        <div className="space-y-3">
+                                          {group.hearings.map((hearing) => (
+                                            <button
+                                              key={hearing.id}
+                                              type="button"
+                                              onClick={() => navigate(`/cases/${hearing.caseId}`)}
+                                              className="flex w-full flex-col gap-3 rounded-2xl border border-white bg-white p-4 text-left shadow-sm transition-colors hover:border-legal-gold/40 hover:bg-amber-50/30 sm:flex-row sm:items-start sm:justify-between"
+                                            >
+                                              <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                  <p className="text-sm font-bold text-legal-corporate break-words">
+                                                    {hearing.clientName}
+                                                  </p>
+                                                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600">
+                                                    {dayjs(hearing.hearingDate).format('hh:mm A')}
+                                                  </span>
+                                                </div>
+
+                                                <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-gray-700 sm:grid-cols-2">
+                                                  <div>
+                                                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+                                                      CNR
+                                                    </p>
+                                                    <p className="mt-1 break-words">{hearing.caseNumber}</p>
+                                                  </div>
+                                                  <div>
+                                                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+                                                      Court Room
+                                                    </p>
+                                                    <p className="mt-1 flex items-start gap-2 break-words">
+                                                      <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-gray-400" />
+                                                      <span>{hearing.location || 'To be updated'}</span>
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <span className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-legal-corporate">
+                                                Open Case
+                                                <ArrowRight className="h-4 w-4" />
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-
-                                <span className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-legal-corporate">
-                                  Open Case
-                                  <ArrowRight className="h-4 w-4" />
-                                </span>
-                              </button>
-                            ))}
+                              );
+                            })}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}

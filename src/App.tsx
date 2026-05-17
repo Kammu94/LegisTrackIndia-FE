@@ -10,6 +10,7 @@ import LeadsPage from './pages/LeadsPage';
 import LeadDetailPage from './pages/LeadDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicProfile from './pages/PublicProfile';
+import PricingPage from './pages/PricingPage';
 import ProtectedPath from './components/ProtectedPath';
 import Loader from './components/Loader';
 import { apiSlice } from './api/apiSlice';
@@ -36,6 +37,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile/:advocateId" element={<PublicProfile />} />
+          <Route path="/pricing" element={<Navigate to="/subscription" replace />} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedPath />}>
@@ -46,6 +48,7 @@ function App() {
             <Route path="/leads" element={<LeadsPage />} />
             <Route path="/leads/:id" element={<LeadDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/subscription" element={<PricingPage />} />
           </Route>
 
           {/* Redirects */}

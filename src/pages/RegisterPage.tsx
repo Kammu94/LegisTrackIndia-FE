@@ -5,16 +5,19 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useRegisterMutation } from '../api/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../features/auth/authSlice';
-import { Scale, Mail, Lock, User, Briefcase, MapPin } from 'lucide-react';
+import { Scale, Mail, Lock } from 'lucide-react';
 import { useNotify } from '../notifications/NotificationProvider';
 
-const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().min(2, 'Full name is required'),
-  barCouncilId: z.string().min(2, 'Bar Council ID is required'),
-  officeAddress: z.string().min(5, 'Office address is required'),
-});
+const registerSchema = z
+  .object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -29,7 +32,10 @@ const RegisterPage = () => {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      const result = await registerUser(data).unwrap();
+      const result = await registerUser({
+        email: data.email,
+        password: data.password,
+      }).unwrap();
       dispatch(setCredentials({ user: result, token: result.token }));
       notify({
         severity: 'success',
@@ -59,22 +65,6 @@ const RegisterPage = () => {
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    {...register('fullName')}
-                    type="text"
-                    className="block w-full pl-10 sm:text-sm border-gray-300 rounded-lg focus:ring-legal-gold focus:border-legal-gold"
-                    placeholder="Advocate Name"
-                  />
-                </div>
-                {errors.fullName && <p className="mt-1 text-xs text-red-600">{errors.fullName.message}</p>}
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700">Email Address</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,38 +81,6 @@ const RegisterPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Bar Council ID</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Briefcase className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    {...register('barCouncilId')}
-                    type="text"
-                    className="block w-full pl-10 sm:text-sm border-gray-300 rounded-lg focus:ring-legal-gold focus:border-legal-gold"
-                    placeholder="D/1234/2024"
-                  />
-                </div>
-                {errors.barCouncilId && <p className="mt-1 text-xs text-red-600">{errors.barCouncilId.message}</p>}
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Office Address</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <textarea
-                    {...register('officeAddress')}
-                    className="block w-full pl-10 sm:text-sm border-gray-300 rounded-lg focus:ring-legal-gold focus:border-legal-gold"
-                    rows={2}
-                    placeholder="Chamber No., Court Complex, City"
-                  />
-                </div>
-                {errors.officeAddress && <p className="mt-1 text-xs text-red-600">{errors.officeAddress.message}</p>}
-              </div>
-
-              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Password</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -135,6 +93,23 @@ const RegisterPage = () => {
                   />
                 </div>
                 {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    {...register('confirmPassword')}
+                    type="password"
+                    className="block w-full pl-10 sm:text-sm border-gray-300 rounded-lg focus:ring-legal-gold focus:border-legal-gold"
+                  />
+                </div>
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>
+                )}
               </div>
             </div>
 

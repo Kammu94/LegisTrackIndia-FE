@@ -48,9 +48,6 @@ export type LoginRequest = {
 export type RegisterRequest = {
   email: string;
   password: string;
-  fullName: string;
-  barCouncilId: string;
-  officeAddress: string;
 };
 
 export type UpdateUserProfileRequest = {

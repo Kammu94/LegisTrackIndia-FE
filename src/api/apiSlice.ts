@@ -45,8 +45,13 @@ export type LoginRequest = {
   password: string;
 };
 
-export type RegisterRequest = {
+export type RequestRegisterOtpRequest = {
   email: string;
+};
+
+export type VerifyCompleteRegisterRequest = {
+  email: string;
+  otp: string;
   password: string;
 };
 
@@ -234,11 +239,18 @@ export const apiSlice = createApi({
         body: credentials,
       }),
     }),
-    register: builder.mutation<AuthResponse, RegisterRequest>({
-      query: (userData) => ({
-        url: '/auth/register',
+    requestRegisterOtp: builder.mutation<{ message: string }, RequestRegisterOtpRequest>({
+      query: (payload) => ({
+        url: '/auth/register/request-otp',
         method: 'POST',
-        body: userData,
+        body: payload,
+      }),
+    }),
+    verifyCompleteRegister: builder.mutation<AuthResponse, VerifyCompleteRegisterRequest>({
+      query: (payload) => ({
+        url: '/auth/register/verify-complete',
+        method: 'POST',
+        body: payload,
       }),
     }),
     getProfile: builder.query<AuthUser, void>({
@@ -345,7 +357,8 @@ export const apiSlice = createApi({
 
 export const {
   useLoginMutation,
-  useRegisterMutation,
+  useRequestRegisterOtpMutation,
+  useVerifyCompleteRegisterMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
   useGetPublicProfileQuery,

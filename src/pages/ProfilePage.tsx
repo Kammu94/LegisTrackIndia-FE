@@ -175,7 +175,11 @@ const ProfilePage = () => {
         message: 'Your profile has been updated.',
       });
     } catch (err: unknown) {
-      void err;
+      notify({
+        severity: 'error',
+        title: 'Save Failed',
+        message: 'Unable to save your profile. Please try again.',
+      });
     }
   };
 

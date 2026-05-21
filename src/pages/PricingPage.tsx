@@ -7,7 +7,7 @@ import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay
 import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, Inbox, User, CreditCard } from 'lucide-react';
 import MobileNav from '../components/MobileNav';
 import { useGetProfileQuery, type SubscriptionState } from '../api/apiSlice';
-import { useNotify } from '../notifications/NotificationProvider';
+import RazorpayCheckoutButton from '../components/RazorpayCheckoutButton';
 
 type BillingFrequency = 'weekly' | 'monthly' | 'yearly';
 
@@ -102,7 +102,6 @@ const getPaidPlanFromState = (state?: SubscriptionState | null) => {
 };
 
 const PricingPage = () => {
-  const notify = useNotify();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -191,14 +190,6 @@ const PricingPage = () => {
   const subtotal = selectedPlan ? pricingForPlan(selectedPlan) : 0;
   const gst = subtotal * taxRate;
   const total = subtotal + gst;
-
-  const proceed = () => {
-    if (!selectedPlan) return;
-    const title = 'Secure Checkout';
-    const message = `${selectedPlan.name} • ${activeFrequencyMeta.label} billing • Total ${formatINR(total, 2)}`;
-    notify({ severity: 'info', title, message });
-    closeModal();
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex max-w-full overflow-x-hidden">
@@ -519,13 +510,11 @@ const PricingPage = () => {
             </div>
 
             <div className="flex flex-col gap-3 p-6 pt-5">
-              <button
-                type="button"
-                className="w-full rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95"
-                onClick={proceed}
-              >
-                Proceed to Secure Checkout
-              </button>
+              <RazorpayCheckoutButton
+                subscriptionPlanId={selectedPlan.id}
+                planName={selectedPlan.name}
+                onAfterOpen={closeModal}
+              />
               <button
                 type="button"
                 className="w-full text-sm font-semibold text-gray-600 hover:underline"

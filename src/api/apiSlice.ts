@@ -134,6 +134,18 @@ export type UpdateLeadStatusRequest = {
   outcomeNote?: string;
 };
 
+export type CreateRazorpayOrderRequest = {
+  subscriptionPlanId: string;
+  advocateId?: string;
+};
+
+export type CreateRazorpayOrderResponse = {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+};
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl,
   prepareHeaders: (headers, { getState }) => {
@@ -253,6 +265,13 @@ export const apiSlice = createApi({
         body: payload,
       }),
     }),
+    createRazorpayOrder: builder.mutation<CreateRazorpayOrderResponse, CreateRazorpayOrderRequest>({
+      query: (payload) => ({
+        url: '/payments/create-order',
+        method: 'POST',
+        body: payload,
+      }),
+    }),
     getProfile: builder.query<AuthUser, void>({
       query: () => '/user/profile',
       providesTags: ['Profile'],
@@ -359,6 +378,7 @@ export const {
   useLoginMutation,
   useRequestRegisterOtpMutation,
   useVerifyCompleteRegisterMutation,
+  useCreateRazorpayOrderMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
   useGetPublicProfileQuery,

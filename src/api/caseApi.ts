@@ -78,7 +78,14 @@ export const caseApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Cases'],
+      invalidatesTags: ['Cases', 'Profile'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(apiSlice.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+        } catch {
+        }
+      },
     }),
     updateCase: builder.mutation<void, { id: number; data: UpdateCaseRequest }>({
       query: ({ id, data }) => ({

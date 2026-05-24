@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { logout } from '../features/auth/authSlice';
+import { logout, updateUser } from '../features/auth/authSlice';
 import { notify, openPlanGate } from '../notifications/notifyService';
 
 const baseUrl =
@@ -275,6 +275,13 @@ export const apiSlice = createApi({
     getProfile: builder.query<AuthUser, void>({
       query: () => '/user/profile',
       providesTags: ['Profile'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(updateUser(data));
+        } catch {
+        }
+      },
     }),
     updateProfile: builder.mutation<AuthUser, UpdateUserProfileRequest>({
       query: (data) => ({

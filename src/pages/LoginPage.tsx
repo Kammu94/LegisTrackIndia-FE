@@ -2,11 +2,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { useLoginMutation } from '../api/apiSlice';
+import { useLoginMutation, type SubscriptionState } from '../api/apiSlice';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../features/auth/authSlice';
 import { Scale, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { useNotify } from '../notifications/NotificationProvider';
+import { openPlanGate } from '../notifications/notifyService';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -24,6 +25,34 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const notify = useNotify();
 
+  const isSubscriptionExpired = (state?: SubscriptionState) => {
+    if (!state) return false;
+    if (state.premiumOverride === true) {
+      const start = state.premiumOverrideAtUtc ? new Date(state.premiumOverrideAtUtc) : new Date(state.createdAtUtc);
+      if (Number.isNaN(start.getTime())) return false;
+      const end = new Date(start.getTime());
+      end.setFullYear(end.getFullYear() + 1);
+      return new Date() >= end;
+    }
+
+    const planType = (state.planType ?? 'Free').toLowerCase();
+    if (planType === 'free') return false;
+    const start = new Date(state.createdAtUtc);
+    if (Number.isNaN(start.getTime())) return false;
+
+    const end = new Date(start.getTime());
+    if (planType.includes('week')) {
+      end.setDate(end.getDate() + 7);
+      return new Date() >= end;
+    }
+    if (planType.includes('year') || planType.includes('enterprise')) {
+      end.setFullYear(end.getFullYear() + 1);
+      return new Date() >= end;
+    }
+    end.setMonth(end.getMonth() + 1);
+    return new Date() >= end;
+  };
+
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const result = await login(data).unwrap();
@@ -33,6 +62,9 @@ const LoginPage = () => {
         title: 'Signed In',
         message: 'Welcome back to LegisTrack.',
       });
+      if (isSubscriptionExpired(result.subscriptionState)) {
+        openPlanGate();
+      }
       navigate('/dashboard');
     } catch (err: unknown) {
       void err;

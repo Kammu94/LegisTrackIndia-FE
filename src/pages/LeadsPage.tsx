@@ -26,6 +26,15 @@ const LeadsPage = () => {
   const isPaidUser =
     (user?.subscriptionState?.planType ?? 'Free').toLowerCase() !== 'free' ||
     user?.subscriptionState?.premiumOverride === true;
+  const isPlanExpiredError = (() => {
+    const candidate = error as
+      | { status?: number; data?: unknown }
+      | undefined;
+    const status = candidate?.status;
+    const data = candidate?.data as { code?: string } | undefined;
+    return status === 403 && typeof data?.code === 'string' && data.code === 'PLAN_EXPIRED';
+  })();
+  const showSubscriptionGate = !isPaidUser || isPlanExpiredError;
 
   const handleLogout = () => {
     dispatch(logout());
@@ -120,7 +129,7 @@ const LeadsPage = () => {
             </div>
           </div>
 
-          {error && (
+          {error && !isPlanExpiredError && (
             <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               Failed to load leads. Please try again.
             </div>
@@ -128,7 +137,7 @@ const LeadsPage = () => {
 
           {!error && (
             <div className="relative mt-8">
-              <div className={isPaidUser ? '' : 'pointer-events-none select-none blur-sm'}>
+              <div className={showSubscriptionGate ? 'pointer-events-none select-none blur-sm' : ''}>
                 {totalLeads === 0 && (
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center py-12 sm:py-20">
                     <div className="max-w-md mx-auto">
@@ -243,21 +252,25 @@ const LeadsPage = () => {
                 )}
               </div>
 
-              {!isPaidUser && (
+              {showSubscriptionGate && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="mx-auto w-full max-w-md rounded-3xl border border-gray-100 bg-white/95 p-6 text-center shadow-lg backdrop-blur">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-700">
                       <Lock className="h-6 w-6" />
                     </div>
-                    <p className="mt-4 text-base font-bold text-legal-corporate">Leads are available on paid plans</p>
+                    <p className="mt-4 text-base font-bold text-legal-corporate">
+                      {isPlanExpiredError ? 'Subscription required' : 'Leads are available on paid plans'}
+                    </p>
                     <p className="mt-2 text-sm text-gray-600">
-                      Upgrade to unlock your incoming leads list while keeping your existing data safe.
+                      {isPlanExpiredError
+                        ? 'Your plan has expired. Renew to regain access to your incoming leads list.'
+                        : 'Upgrade to unlock your incoming leads list while keeping your existing data safe.'}
                     </p>
                     <Link
                       to="/subscription"
                       className="mt-5 inline-flex items-center justify-center rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95"
                     >
-                      Subscribe
+                      {isPlanExpiredError ? 'Renew' : 'Subscribe'}
                     </Link>
                   </div>
                 </div>

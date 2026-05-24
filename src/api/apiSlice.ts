@@ -146,6 +146,12 @@ export type CreateRazorpayOrderResponse = {
   keyId: string;
 };
 
+export type SubscriptionPlan = {
+  id: string;
+  planType: string;
+  amountInr: number;
+};
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl,
   prepareHeaders: (headers, { getState }) => {
@@ -271,6 +277,9 @@ export const apiSlice = createApi({
         method: 'POST',
         body: payload,
       }),
+    }),
+    getSubscriptionPlans: builder.query<SubscriptionPlan[], void>({
+      query: () => '/payments/subscription-plans',
     }),
     getProfile: builder.query<AuthUser, void>({
       query: () => '/user/profile',

@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import type { ConfirmInput, NotificationItem, NotifyInput, NotifySeverity, PromptInput } from './types';
 import { setConfirmRef, setNotifyRef, setPlanGateRef, setPromptRef } from './notifyService';
 import { GavelIcon, ScalesIcon, ShieldIcon } from './icons';
+import { useGetSubscriptionPlansQuery } from '../api/apiSlice';
+import { useGetSubscriptionPlansQuery } from '../api/apiSlice';
 
 type NotifyContextValue = {
   notify: (input: NotifyInput) => string;
@@ -100,6 +102,7 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [planGateOpen, setPlanGateOpen] = useState(false);
+  const { data: subscriptionPlans } = useGetSubscriptionPlansQuery();
   const [billingFrequency, setBillingFrequency] = useState<BillingFrequency>(() => {
     const stored = typeof window !== 'undefined' ? window.localStorage.getItem('billingFrequency') : null;
     if (stored === 'weekly' || stored === 'monthly' || stored === 'yearly') return stored;
@@ -112,8 +115,8 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
   const promptInputRef = useRef<HTMLInputElement | null>(null);
 
-  const plans: Plan[] = useMemo(
-    () => [
+  const plans: Plan[] = useMemo(() => {
+    const defaults: Plan[] = [
       {
         id: 'weekly-sprint',
         name: 'Weekly Sprint',
@@ -150,9 +153,23 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
           '24/7 dedicated account manager',
         ],
       },
-    ],
-    []
-  );
+    ];
+
+    if (!subscriptionPlans || subscriptionPlans.length === 0) {
+      return defaults;
+    }
+
+    const byId = new Map(subscriptionPlans.map((p) => [p.id, p]));
+    return defaults.map((plan) => {
+      const row = byId.get(plan.id);
+      if (!row) return plan;
+      return {
+        ...plan,
+        name: row.planType?.trim() || plan.name,
+        canonical: { ...plan.canonical, price: row.amountInr },
+      };
+    });
+  }, [subscriptionPlans]);
 
   const activeFrequencyMeta = useMemo(
     () => frequencies.find((f) => f.key === billingFrequency) ?? frequencies[1],
@@ -179,9 +196,18 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
     setPlanGateOpen(false);
   }, []);
 
-  const goToPricing = useCallback(() => {
+  const goToPricing = useCallback((planId?: Plan['id'], frequency?: BillingFrequency) => {
     if (typeof window !== 'undefined') {
-      window.location.assign('/subscription');
+      if (frequency) {
+        window.localStorage.setItem('billingFrequency', frequency);
+      }
+
+      if (planId) {
+        window.localStorage.setItem('selectedSubscriptionPlanId', planId);
+      }
+
+      const query = planId ? `?planId=${encodeURIComponent(planId)}` : '';
+      window.location.assign(`/subscription${query}`);
     }
   }, []);
 
@@ -237,8 +263,8 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
       title: 'Secure Checkout',
       message: `${selectedPlan.name} • ${activeFrequencyMeta.label} billing • Total ${formatINR(total, 2)}`,
     });
-    goToPricing();
-  }, [activeFrequencyMeta.label, goToPricing, notify, selectedPlan.name, total]);
+    goToPricing(selectedPlanId, billingFrequency);
+  }, [activeFrequencyMeta.label, billingFrequency, goToPricing, notify, selectedPlan.name, selectedPlanId, total]);
 
   const resolveActiveDialog = useCallback((value: boolean | string | null) => {
     const resolve = dialogResolveRef.current;
@@ -575,7 +601,7 @@ const NotificationProvider = ({ children }: NotificationProviderProps) => {
                       className="w-full text-sm font-semibold text-gray-600 hover:underline"
                       onClick={() => {
                         closePlanGate();
-                        goToPricing();
+                        goToPricing(selectedPlanId, billingFrequency);
                       }}
                     >
                       Return to Plans

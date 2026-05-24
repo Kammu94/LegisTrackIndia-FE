@@ -6,7 +6,7 @@ import { logout } from '../features/auth/authSlice';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 import { Scale, LogOut, LayoutDashboard, Briefcase, Calendar, Inbox, User, CreditCard } from 'lucide-react';
 import MobileNav from '../components/MobileNav';
-import { useGetProfileQuery, type SubscriptionState } from '../api/apiSlice';
+import { useGetProfileQuery, useGetSubscriptionPlansQuery, type SubscriptionState } from '../api/apiSlice';
 import RazorpayCheckoutButton from '../components/RazorpayCheckoutButton';
 
 type BillingFrequency = 'weekly' | 'monthly' | 'yearly';
@@ -106,6 +106,7 @@ const PricingPage = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: profileData } = useGetProfileQuery();
+  const { data: subscriptionPlans } = useGetSubscriptionPlansQuery();
 
   const subscriptionState = profileData?.subscriptionState ?? user?.subscriptionState ?? null;
   const paidPlan = getPaidPlanFromState(subscriptionState);
@@ -125,11 +126,23 @@ const PricingPage = () => {
   }, [frequency]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const planIdParam = params.get('planId');
+    const storedPlanId = window.localStorage.getItem('selectedSubscriptionPlanId');
+    const candidate = (planIdParam ?? storedPlanId ?? '').trim();
+    if (candidate === 'weekly-sprint' || candidate === 'professional-desk' || candidate === 'enterprise-firm') {
+      openModal(candidate);
+      window.localStorage.removeItem('selectedSubscriptionPlanId');
+    }
+  }, []);
+
+  useEffect(() => {
     setShowPlans(!isPaidUser);
   }, [isPaidUser]);
 
-  const plans: Plan[] = useMemo(
-    () => [
+  const plans: Plan[] = useMemo(() => {
+    const defaults: Plan[] = [
       {
         id: 'weekly-sprint',
         name: 'Weekly Sprint',
@@ -166,9 +179,23 @@ const PricingPage = () => {
           '24/7 dedicated account manager',
         ],
       },
-    ],
-    []
-  );
+    ];
+
+    if (!subscriptionPlans || subscriptionPlans.length === 0) {
+      return defaults;
+    }
+
+    const byId = new Map(subscriptionPlans.map((p) => [p.id, p]));
+    return defaults.map((plan) => {
+      const row = byId.get(plan.id);
+      if (!row) return plan;
+      return {
+        ...plan,
+        name: row.planType?.trim() || plan.name,
+        canonical: { ...plan.canonical, price: row.amountInr },
+      };
+    });
+  }, [subscriptionPlans]);
 
   const selectedPlan = useMemo(
     () => plans.find((plan) => plan.id === selectedPlanId) ?? null,

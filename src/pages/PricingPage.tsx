@@ -110,7 +110,8 @@ const PricingPage = () => {
 
   const subscriptionState = profileData?.subscriptionState ?? user?.subscriptionState ?? null;
   const paidPlan = getPaidPlanFromState(subscriptionState);
-  const isPaidUser = paidPlan !== null;
+  const isSubscriptionActive = paidPlan !== null && new Date() < paidPlan.end;
+  const isPaidUser = isSubscriptionActive;
 
   const [frequency, setFrequency] = useState<BillingFrequency>(() => {
     const stored = typeof window !== 'undefined' ? window.localStorage.getItem('billingFrequency') : null;
@@ -132,10 +133,12 @@ const PricingPage = () => {
     const storedPlanId = window.localStorage.getItem('selectedSubscriptionPlanId');
     const candidate = (planIdParam ?? storedPlanId ?? '').trim();
     if (candidate === 'weekly-sprint' || candidate === 'professional-desk' || candidate === 'enterprise-firm') {
-      openModal(candidate);
+      if (!isSubscriptionActive) {
+        openModal(candidate);
+      }
       window.localStorage.removeItem('selectedSubscriptionPlanId');
     }
-  }, []);
+  }, [isSubscriptionActive]);
 
   useEffect(() => {
     setShowPlans(!isPaidUser);
@@ -341,7 +344,9 @@ const PricingPage = () => {
                 <div className="mt-5 rounded-2xl bg-gray-50 p-5 ring-1 ring-gray-100">
                   <div className="flex items-center justify-between gap-4">
                     <p className="text-sm font-semibold text-gray-700">Status</p>
-                    <p className="text-sm font-extrabold text-[#004D26]">Active</p>
+                    <p className={`text-sm font-extrabold ${isSubscriptionActive ? 'text-[#004D26]' : 'text-[#990000]'}`}>
+                      {isSubscriptionActive ? 'Active' : 'Expired'}
+                    </p>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-4">
                     <p className="text-sm font-semibold text-gray-700">Cycle type</p>
@@ -425,8 +430,9 @@ const PricingPage = () => {
                             highlight ? 'bg-[#004D26]' : 'bg-[#003366]'
                           } hover:opacity-95`}
                           onClick={() => openModal(plan.id)}
+                          disabled={isSubscriptionActive}
                         >
-                          Select Plan
+                          {isSubscriptionActive ? 'Plan Active' : 'Select Plan'}
                         </button>
 
                         <p className="mt-3 text-center text-xs text-gray-500">
@@ -541,6 +547,8 @@ const PricingPage = () => {
                 subscriptionPlanId={selectedPlan.id}
                 planName={selectedPlan.name}
                 onAfterOpen={closeModal}
+                disabled={isSubscriptionActive}
+                disabledText="Your current plan is active. You can purchase a new plan after the cycle completes."
               />
               <button
                 type="button"

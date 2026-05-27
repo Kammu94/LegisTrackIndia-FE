@@ -15,11 +15,13 @@ type Props = {
   subscriptionPlanId: string;
   planName: string;
   onAfterOpen?: () => void;
+  disabled?: boolean;
+  disabledText?: string;
 };
 
 const checkoutScriptUrl = 'https://checkout.razorpay.com/v1/checkout.js';
 
-const RazorpayCheckoutButton = ({ subscriptionPlanId, planName, onAfterOpen }: Props) => {
+const RazorpayCheckoutButton = ({ subscriptionPlanId, planName, onAfterOpen, disabled, disabledText }: Props) => {
   const notify = useNotify();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -57,6 +59,15 @@ const RazorpayCheckoutButton = ({ subscriptionPlanId, planName, onAfterOpen }: P
   }, []);
 
   const startCheckout = async () => {
+    if (disabled) {
+      notify({
+        severity: 'warning',
+        title: 'Subscription Active',
+        message: disabledText ?? 'A plan is already active. You can purchase a new plan after the current cycle completes.',
+      });
+      return;
+    }
+
     if (!scriptReady || !window.Razorpay) {
       notify({
         severity: 'error',
@@ -122,12 +133,11 @@ const RazorpayCheckoutButton = ({ subscriptionPlanId, planName, onAfterOpen }: P
       type="button"
       className="w-full rounded-2xl bg-[#003366] px-5 py-3 text-sm font-bold text-white hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
       onClick={startCheckout}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
     >
-      {isLoading ? 'Starting Checkout…' : 'Proceed to Secure Checkout'}
+      {isLoading ? 'Starting Checkout…' : disabled ? (disabledText ?? 'Plan Active') : 'Proceed to Secure Checkout'}
     </button>
   );
 };
 
 export default RazorpayCheckoutButton;
-

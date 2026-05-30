@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useGetCasesQuery, useCreateCaseMutation, useUpdateCaseMutation, useToggleCaseStatusMutation } from '../api/caseApi';
 import type { CaseDto, CreateCaseRequest, UpdateCaseRequest } from '../api/caseApi';
-import { Scale, Pencil, CheckCircle, Archive, AlertCircle, MapPin, User, Calendar, Inbox, LogOut, LayoutDashboard, Briefcase, Clock, CreditCard } from 'lucide-react';
+import { Scale, Pencil, CheckCircle, Archive, AlertCircle, MapPin, User, Calendar, Inbox, LogOut, LayoutDashboard, Briefcase, CreditCard } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { logout } from '../features/auth/authSlice';
-import dayjs from 'dayjs';
 import MobileNav from '../components/MobileNav';
 import { getUserDisplayName, getUserInitial } from '../features/auth/userDisplay';
 import { useNotify } from '../notifications/NotificationProvider';
@@ -132,14 +131,6 @@ const MyCases = () => {
                   <div className="text-sm font-bold text-legal-corporate break-words">{c.caseNumber}</div>
                   <div className="text-xs text-gray-500 mt-1 break-words">{c.clientName}</div>
                 </button>
-                <div className="flex flex-wrap items-center gap-3 mt-3">
-                  <div className="flex items-center text-[10px] text-gray-400">
-                    <Calendar className="h-3 w-3 mr-1 shrink-0" /> {dayjs(c.caseDate).format('DD MMM YYYY')}
-                  </div>
-                  <div className="flex items-center text-[10px] text-legal-gold font-bold">
-                    <Clock className="h-3 w-3 mr-1 shrink-0" /> {dayjs(c.caseDate).format('hh:mm A')}
-                  </div>
-                </div>
                 <div className="mt-4 space-y-2 text-sm">
                   <div className="text-gray-900 break-words">{c.courtName}</div>
                   <div className="flex items-start text-xs text-gray-500">
@@ -197,14 +188,6 @@ const MyCases = () => {
                   <td className="px-6 py-4" onClick={() => navigate(`/cases/${c.id}`)}>
                       <div className="text-sm font-bold text-legal-corporate">{c.caseNumber}</div>
                       <div className="text-xs text-gray-500">{c.clientName}</div>
-                      <div className="flex items-center space-x-3 mt-1">
-                        <div className="flex items-center text-[10px] text-gray-400">
-                          <Calendar className="h-3 w-3 mr-1" /> {dayjs(c.caseDate).format('DD MMM YYYY')}
-                        </div>
-                        <div className="flex items-center text-[10px] text-legal-gold font-bold">
-                          <Clock className="h-3 w-3 mr-1" /> {dayjs(c.caseDate).format('hh:mm A')}
-                        </div>
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">{c.courtName}</div>
@@ -263,7 +246,6 @@ const MyCases = () => {
               const payload: UpdateCaseRequest = {
                 clientName: data.clientName.trim(),
                 courtName: data.courtName.trim(),
-                caseDate: data.caseDate,
                 judgeName: data.judgeName?.trim() || '',
                 courtAddress: data.courtAddress?.trim() || '',
                 caseStartDate: data.caseStartDate || undefined,
@@ -285,7 +267,7 @@ const MyCases = () => {
       {/* Add Modal */}
       {isAddingCase && (
         <CaseModal 
-          caseData={{ caseNumber: '', clientName: '', courtName: '', judgeName: '', courtAddress: '', caseDate: new Date().toISOString().split('T')[0] }} 
+          caseData={{ caseNumber: '', clientName: '', courtName: '', judgeName: '', courtAddress: '' }} 
           onClose={() => setIsAddingCase(false)} 
           isNew={true}
           onSave={async (data) => {
@@ -294,7 +276,7 @@ const MyCases = () => {
                 caseNumber: data.caseNumber,
                 clientName: data.clientName,
                 courtName: data.courtName,
-                caseDate: data.caseDate,
+                hearingDate: data.hearingDate || undefined,
                 judgeName: data.judgeName || undefined,
                 courtAddress: data.courtAddress || undefined,
                 caseStartDate: data.caseStartDate || undefined,
@@ -320,7 +302,7 @@ type CaseFormData = {
   caseNumber: string;
   clientName: string;
   courtName: string;
-  caseDate: string;
+  hearingDate?: string | null;
   judgeName?: string | null;
   courtAddress?: string | null;
   caseStartDate?: string | null;
@@ -338,7 +320,7 @@ const CaseModal = ({ caseData, onClose, onSave, isNew }: CaseModalProps) => {
     caseNumber: caseData.caseNumber || '',
     clientName: caseData.clientName || '',
     courtName: caseData.courtName || '',
-    caseDate: caseData.caseDate || new Date().toISOString().split('T')[0],
+    hearingDate: caseData.hearingDate || '',
     judgeName: caseData.judgeName || '',
     courtAddress: caseData.courtAddress || '',
     caseStartDate: caseData.caseStartDate || '',
@@ -381,15 +363,17 @@ const CaseModal = ({ caseData, onClose, onSave, isNew }: CaseModalProps) => {
               placeholder="e.g. High Court of Delhi"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Case Date & Time</label>
-            <input 
-              type="datetime-local"
-              className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-legal-gold focus:border-legal-gold outline-none"
-              value={formData.caseDate ? formData.caseDate.substring(0, 16) : ''}
-              onChange={(e) => setFormData({...formData, caseDate: e.target.value})}
-            />
-          </div>
+          {isNew && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Hearing Date & Time (Optional)</label>
+              <input
+                type="datetime-local"
+                className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-legal-gold focus:border-legal-gold outline-none"
+                value={formData.hearingDate ? formData.hearingDate.substring(0, 16) : ''}
+                onChange={(e) => setFormData({ ...formData, hearingDate: e.target.value })}
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700">Judge Name</label>
             <input 

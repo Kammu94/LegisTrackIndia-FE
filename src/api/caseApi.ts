@@ -24,7 +24,6 @@ export type CaseDto = {
   courtName: string;
   judgeName?: string | null;
   courtAddress?: string | null;
-  caseDate: string;
   caseStartDate?: string | null;
   status: number;
   hearings?: HearingDto[];
@@ -42,11 +41,17 @@ export type CreateCaseRequest = {
   courtName: string;
   judgeName?: string;
   courtAddress?: string;
-  caseDate: string;
+  hearingDate?: string;
   caseStartDate?: string;
 };
 
-export type UpdateCaseRequest = Partial<CreateCaseRequest>;
+export type UpdateCaseRequest = {
+  clientName?: string;
+  courtName?: string;
+  judgeName?: string;
+  courtAddress?: string;
+  caseStartDate?: string;
+};
 
 export type HearingListDto = {
   id: number;

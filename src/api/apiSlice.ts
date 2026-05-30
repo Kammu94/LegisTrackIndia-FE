@@ -395,6 +395,7 @@ export const {
   useRequestRegisterOtpMutation,
   useVerifyCompleteRegisterMutation,
   useCreateRazorpayOrderMutation,
+  useGetSubscriptionPlansQuery,
   useGetProfileQuery,
   useUpdateProfileMutation,
   useGetPublicProfileQuery,

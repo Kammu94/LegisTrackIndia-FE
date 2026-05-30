@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useGetCaseByIdQuery, useAddHearingMutation, useAddPaymentRecordMutation, useToggleCaseStatusMutation, useUpdateHearingMutation, useDeleteCaseMutation } from '../api/caseApi';
-import type { HearingDto, PaymentRecordDto } from '../api/caseApi';
+import { useGetCaseByIdQuery, useAddHearingMutation, useAddPaymentRecordMutation, useToggleCaseStatusMutation, useUpdateHearingMutation, useDeleteCaseMutation, useUpdatePaymentInfoMutation, useLazyGetPaymentHistoryLogsQuery } from '../api/caseApi';
+import type { HearingDto, PaymentRecordDto, PaymentHistoryLogDto } from '../api/caseApi';
 import { Scale, Pencil, Calendar, MapPin, User, ArrowLeft, Plus, History, CheckCircle, Archive, Info, Inbox, LogOut, LayoutDashboard, Briefcase, CreditCard, Clock } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
@@ -28,12 +28,16 @@ const CaseDetails = () => {
   );
   const [addHearing] = useAddHearingMutation();
   const [addPaymentRecord] = useAddPaymentRecordMutation();
+  const [updatePaymentInfo] = useUpdatePaymentInfoMutation();
+  const [fetchPaymentHistoryLogs, { data: paymentHistoryLogs, isFetching: isPaymentHistoryLoading }] = useLazyGetPaymentHistoryLogsQuery();
   const [updateHearing] = useUpdateHearingMutation();
   const [deleteCase] = useDeleteCaseMutation();
   const [toggleStatus] = useToggleCaseStatusMutation();
   
   const [showAddHearing, setShowAddHearing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentInfoModal, setShowPaymentInfoModal] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [hearingToEdit, setHearingToEdit] = useState<HearingDto | null>(null);
 
@@ -373,22 +377,66 @@ const CaseDetails = () => {
                 <CreditCard className="h-5 w-5 text-legal-corporate" />
                 <h3 className="text-lg font-bold text-legal-corporate">Payment Info</h3>
               </div>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-legal-gold text-legal-dark px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-500 transition-all shadow-md w-full sm:w-auto"
-              >
-                Update Payment
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    const paymentInfoId = (caseData.paymentInfoId ?? '').trim();
+                    if (!paymentInfoId) {
+                      notify({
+                        severity: 'error',
+                        title: 'Payment Info Missing',
+                        message: 'Payment info record was not found for this case.',
+                      });
+                      return;
+                    }
+                    void fetchPaymentHistoryLogs(paymentInfoId);
+                    setShowPaymentHistory(true);
+                  }}
+                  className="bg-white border border-gray-200 text-legal-corporate px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm w-full sm:w-auto"
+                >
+                  View Payment History
+                </button>
+                <button
+                  onClick={() => setShowPaymentInfoModal(true)}
+                  className="bg-legal-gold text-legal-dark px-4 py-2 rounded-xl text-sm font-bold hover:bg-yellow-500 transition-all shadow-md w-full sm:w-auto"
+                >
+                  Update Payment Info
+                </button>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-legal-corporate text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-legal-dark transition-all shadow-md w-full sm:w-auto"
+                >
+                  Add Payment Record
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
               <div className="bg-legal-dark rounded-2xl p-6 text-white flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-white/60">Total Fees Collected</p>
-                  <p className="text-2xl font-black text-legal-gold mt-2">{formatINR(Number(caseData.totalFeesCollected || 0))}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/60">Credit</p>
+                  <p className="text-2xl font-black text-legal-gold mt-2">{formatINR(Number(caseData.credit ?? caseData.totalFeesCollected ?? 0))}</p>
                 </div>
                 <div className="bg-white/10 p-3 rounded-xl">
                   <CheckCircle className="h-6 w-6 text-legal-gold" />
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Debit</p>
+                  <p className="text-2xl font-black text-legal-corporate mt-2">{formatINR(Number(caseData.debit ?? 0))}</p>
+                </div>
+                <div className="bg-legal-gold/10 p-3 rounded-xl">
+                  <Archive className="h-6 w-6 text-legal-gold" />
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Promised Money</p>
+                  <p className="text-2xl font-black text-legal-corporate mt-2">{formatINR(Number(caseData.promisedMoney ?? 0))}</p>
+                </div>
+                <div className="bg-legal-gold/10 p-3 rounded-xl">
+                  <Clock className="h-6 w-6 text-legal-gold" />
                 </div>
               </div>
               <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between gap-4">
@@ -428,7 +476,7 @@ const CaseDetails = () => {
               ))}
               {paymentRecords.length === 0 && (
                 <div className="px-6 py-10 text-center text-gray-500">
-                  No payment records yet. Use “Update Payment” to add one.
+                  No payment records yet. Use “Add Payment Record” to add one.
                 </div>
               )}
             </div>
@@ -469,7 +517,7 @@ const CaseDetails = () => {
                   {paymentRecords.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                        No payment records yet. Use “Update Payment” to add one.
+                        No payment records yet. Use “Add Payment Record” to add one.
                       </td>
                     </tr>
                   )}
@@ -565,12 +613,64 @@ const CaseDetails = () => {
           }}
         />
       )}
+
+      {showPaymentInfoModal && (
+        <PaymentInfoModal
+          initial={{
+            credit: Number(caseData.credit ?? caseData.totalFeesCollected ?? 0),
+            debit: Number(caseData.debit ?? 0),
+            promisedMoney: Number(caseData.promisedMoney ?? 0),
+          }}
+          onClose={() => setShowPaymentInfoModal(false)}
+          onSave={async (data) => {
+            const paymentInfoId = (caseData.paymentInfoId ?? '').trim();
+            if (!paymentInfoId) {
+              notify({
+                severity: 'error',
+                title: 'Payment Info Missing',
+                message: 'Payment info record was not found for this case.',
+              });
+              return;
+            }
+
+            try {
+              await updatePaymentInfo({
+                paymentInfoId,
+                data: {
+                  credit: data.credit,
+                  debit: data.debit,
+                  promisedMoney: data.promisedMoney,
+                  notes: data.notes || undefined,
+                },
+              }).unwrap();
+
+              setShowPaymentInfoModal(false);
+              notify({
+                severity: 'success',
+                title: 'Payment Info Saved',
+                message: 'Payment info has been updated.',
+              });
+            } catch (err: unknown) {
+              void err;
+            }
+          }}
+        />
+      )}
+
+      {showPaymentHistory && (
+        <PaymentHistoryDrawer
+          isLoading={isPaymentHistoryLoading}
+          logs={(paymentHistoryLogs ?? []) as PaymentHistoryLogDto[]}
+          onClose={() => setShowPaymentHistory(false)}
+        />
+      )}
     </div>
   );
 };
 
 type HearingFormData = { hearingDate: string; location: string; notes: string };
 type PaymentFormData = { amount: number; type: number; mode: number; note?: string; transactionDate?: string };
+type PaymentInfoFormData = { credit: number; debit: number; promisedMoney: number; notes: string };
 
 type HearingModalProps = { onClose: () => void; onSave: (data: HearingFormData) => void };
 
@@ -759,6 +859,177 @@ const PaymentModal = ({ onClose, onSave }: PaymentModalProps) => {
           >
             Save Payment
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+type PaymentInfoModalProps = {
+  initial: { credit: number; debit: number; promisedMoney: number };
+  onClose: () => void;
+  onSave: (data: PaymentInfoFormData) => void;
+};
+
+const PaymentInfoModal = ({ initial, onClose, onSave }: PaymentInfoModalProps) => {
+  const [formData, setFormData] = useState<PaymentInfoFormData>({
+    credit: Number.isFinite(initial.credit) ? initial.credit : 0,
+    debit: Number.isFinite(initial.debit) ? initial.debit : 0,
+    promisedMoney: Number.isFinite(initial.promisedMoney) ? initial.promisedMoney : 0,
+    notes: '',
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <h2 className="text-2xl font-bold text-legal-corporate mb-2">Update Payment Info</h2>
+        <p className="text-sm text-gray-500 mb-8">Changes are recorded into an audit log for accountability.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Credit</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
+              value={String(formData.credit)}
+              onChange={(e) => setFormData({ ...formData, credit: Number(e.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Debit</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
+              value={String(formData.debit)}
+              onChange={(e) => setFormData({ ...formData, debit: Number(e.target.value) })}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Promised Money</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
+              value={String(formData.promisedMoney)}
+              onChange={(e) => setFormData({ ...formData, promisedMoney: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Reason for Change / Notes (Optional)</label>
+          <textarea
+            className="w-full border-gray-200 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-legal-gold outline-none transition-all"
+            rows={3}
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="e.g. Client revised agreed fee after settlement discussion"
+          />
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-10">
+          <button onClick={onClose} className="px-6 py-3 text-gray-500 hover:text-gray-700 font-bold w-full sm:w-auto">
+            Cancel
+          </button>
+          <button
+            onClick={() =>
+              onSave({
+                credit: Number.isFinite(formData.credit) ? formData.credit : 0,
+                debit: Number.isFinite(formData.debit) ? formData.debit : 0,
+                promisedMoney: Number.isFinite(formData.promisedMoney) ? formData.promisedMoney : 0,
+                notes: formData.notes.trim(),
+              })
+            }
+            className="px-8 py-3 bg-legal-corporate text-white rounded-xl font-bold hover:bg-legal-dark shadow-lg shadow-legal-corporate/20 transition-all w-full sm:w-auto"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+type PaymentHistoryDrawerProps = {
+  logs: PaymentHistoryLogDto[];
+  isLoading: boolean;
+  onClose: () => void;
+};
+
+const PaymentHistoryDrawer = ({ logs, isLoading, onClose }: PaymentHistoryDrawerProps) => {
+  const formatINR = (value: number) =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value || 0);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-stretch justify-end bg-black/50">
+      <button type="button" className="flex-1" onClick={onClose} aria-label="Close payment history" />
+      <div className="w-full max-w-xl bg-white h-full shadow-2xl border-l border-gray-100 flex flex-col">
+        <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xl font-extrabold text-legal-corporate">Payment History Audit Log</p>
+            <p className="mt-1 text-sm text-gray-600">Newest changes appear first.</p>
+          </div>
+          <button
+            type="button"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {isLoading && (
+            <div className="text-sm text-gray-500">Loading history…</div>
+          )}
+
+          {!isLoading && logs.length === 0 && (
+            <div className="text-sm text-gray-500">No audit entries found.</div>
+          )}
+
+          {!isLoading && logs.length > 0 && (
+            <div className="space-y-4">
+              {logs.map((log) => {
+                const oldText = log.oldValue === null || typeof log.oldValue === 'undefined' ? '—' : formatINR(Number(log.oldValue));
+                const newText = formatINR(Number(log.newValue));
+                const when = dayjs(log.createdAtUtc).format('DD MMM YYYY, hh:mm A');
+
+                return (
+                  <div key={log.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-xs font-black uppercase tracking-widest text-gray-400">{when}</div>
+                        <div className="mt-2 text-sm font-extrabold text-legal-corporate">
+                          {log.changeType} • {log.operationType}
+                        </div>
+                        <div className="mt-2 text-sm text-gray-700 font-semibold">
+                          Changed from {oldText} to {newText}
+                        </div>
+                        {log.notes && log.notes.trim().length > 0 && (
+                          <div className="mt-2 text-sm text-gray-600 break-words">
+                            {log.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="shrink-0 rounded-xl bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600">
+                        {log.changedByUserId}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

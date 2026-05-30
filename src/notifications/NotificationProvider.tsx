@@ -4,7 +4,6 @@ import type { ConfirmInput, NotificationItem, NotifyInput, NotifySeverity, Promp
 import { setConfirmRef, setNotifyRef, setPlanGateRef, setPromptRef } from './notifyService';
 import { GavelIcon, ScalesIcon, ShieldIcon } from './icons';
 import { useGetSubscriptionPlansQuery } from '../api/apiSlice';
-import { useGetSubscriptionPlansQuery } from '../api/apiSlice';
 
 type NotifyContextValue = {
   notify: (input: NotifyInput) => string;

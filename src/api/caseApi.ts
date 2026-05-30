@@ -24,6 +24,10 @@ export type CaseDto = {
   courtName: string;
   judgeName?: string | null;
   courtAddress?: string | null;
+  paymentInfoId?: string | null;
+  credit?: number;
+  debit?: number;
+  promisedMoney?: number;
   caseStartDate?: string | null;
   status: number;
   hearings?: HearingDto[];
@@ -51,6 +55,24 @@ export type UpdateCaseRequest = {
   judgeName?: string;
   courtAddress?: string;
   caseStartDate?: string;
+};
+
+export type PaymentInfoUpdateRequest = {
+  credit: number;
+  debit: number;
+  promisedMoney: number;
+  notes?: string;
+};
+
+export type PaymentHistoryLogDto = {
+  id: string;
+  changedByUserId: string;
+  changeType: string;
+  operationType: string;
+  oldValue?: number | null;
+  newValue: number;
+  notes?: string | null;
+  createdAtUtc: string;
 };
 
 export type HearingListDto = {
@@ -102,6 +124,17 @@ export const caseApi = apiSlice.injectEndpoints({
         },
       }),
       invalidatesTags: ['Cases'],
+    }),
+    updatePaymentInfo: builder.mutation<void, { paymentInfoId: string; data: PaymentInfoUpdateRequest }>({
+      query: ({ paymentInfoId, data }) => ({
+        url: `/payments/${paymentInfoId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Cases'],
+    }),
+    getPaymentHistoryLogs: builder.query<PaymentHistoryLogDto[], string>({
+      query: (paymentInfoId) => `/payments/${paymentInfoId}/logs`,
     }),
     toggleCaseStatus: builder.mutation<void, number>({
       query: (id) => ({
@@ -156,6 +189,8 @@ export const {
   useGetCaseByIdQuery,
   useCreateCaseMutation, 
   useUpdateCaseMutation, 
+  useUpdatePaymentInfoMutation,
+  useLazyGetPaymentHistoryLogsQuery,
   useToggleCaseStatusMutation,
   useAddHearingMutation,
   useUpdateHearingMutation,
